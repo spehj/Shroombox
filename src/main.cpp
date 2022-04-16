@@ -259,7 +259,7 @@ byte time_passed(unsigned long timemark, unsigned long delay)
 Check if more (or equal) of "delay" millisecond has passed or not
 Return 1 if yes, 0 if not
 */
-char time_passed(const unsigned long timemark, const unsigned long delay)
+char time_passed(unsigned long timemark, unsigned long delay)
 {
   char x = 0;
   unsigned long new_millis = millis();
