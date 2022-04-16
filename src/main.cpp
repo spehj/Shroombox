@@ -53,7 +53,7 @@ char begin_scd30();
 void begin_pwm();
 char read_dht22(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
-char time_passed(const unsigned long timemark, const unsigned long delay);
+char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
 
 /****************************/
