@@ -2,7 +2,7 @@
 Product: Shroombox
 Authors: Matic Sedej, Jure Špeh
 Date: April 2022
-GitHub:
+GitHub: https://github.com/spehj/Shroombox
 */
 
 #include <Arduino.h>
