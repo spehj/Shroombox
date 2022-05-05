@@ -7,8 +7,8 @@
 #define DHT_PIN 23 // Air temperature and humidity sensor, connector J23
 
 //IO pins for DS18B20
-#define DS18B20_1_PIN 0 // Room temperature, connector J24
-#define DS18B20_2_PIN 15 // Heater temperature, connector J25
+#define DS18B20_1_PIN 0 // Heater temperature, connector J24
+#define DS18B20_2_PIN 15 // Room temperature, connector J25
 
 //IO pins for stepper motor, connector J22
 #define STPR_PIN1 19

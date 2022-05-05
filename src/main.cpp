@@ -25,7 +25,7 @@ GitHub: https://github.com/spehj/Shroombox
 
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
-#define BLYNK_FIRMWARE_VERSION "0.1.7"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.8"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 #define BLYNK_PRINT Serial               //#define BLYNK_DEBUG
 #define APP_DEBUG
 #include "BlynkEdgent.h" // Must be below blynk defines!
@@ -182,7 +182,7 @@ void loop()
     read_sht30(air_temp, air_hum);
     Serial.print("Air_temp "), Serial.println(air_temp);
     Serial.print("Air_hum "), Serial.println(air_hum);
-    read_ds18b20(room_temp, heater_temp);
+    read_ds18b20(heater_temp,room_temp);
     Serial.print("Room_temp "), Serial.println(room_temp);
     Serial.print("Heater_temp "), Serial.println(heater_temp);
     time_temp = time_mark();
