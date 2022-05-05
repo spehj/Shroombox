@@ -23,24 +23,22 @@ GitHub: https://github.com/spehj/Shroombox
 
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
-#define BLYNK_FIRMWARE_VERSION "0.1.2" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
-#define BLYNK_PRINT Serial //#define BLYNK_DEBUG
+#define BLYNK_FIRMWARE_VERSION "0.1.2"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_PRINT Serial               //#define BLYNK_DEBUG
 #define APP_DEBUG
 #include "BlynkEdgent.h" // Must be below blynk defines!
 
-#define HUMIDIFIER 0 // PWM channel 0
-#define LEDS 1 // PWM channel 1
-#define FAN 2 // PWM channel 2
+#define HUMIDIFIER 0   // PWM channel 0
+#define LEDS 1         // PWM channel 1
+#define FAN 2          // PWM channel 2
 #define HEATING_PAD1 3 // PWM channel 3
 #define HEATING_PAD2 4 // PWM channel 4
 
 #define GP1 1
 #define GP2 2
 
-
-
 #define DISPLAY_W 128 // OLED display width
-#define DISPLAY_H 64 // OLED display height
+#define DISPLAY_H 64  // OLED display height
 #define DISPLAY_ADR 0x3C
 Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
 
@@ -67,16 +65,19 @@ char begin_display();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
 void reg_temp(float measured_temp, float desired_temp, float hyst, char pwm_ch);
-
+void auto_mode();
+void manual_mode();
+void shutdown();
+void mode();
 /****************************/
 void setup()
 {
   Serial.begin(115200);
   begin_dht22();
   begin_ds18b20();
-  //begin_stepper();
+  // begin_stepper();
   begin_io();
-  //begin_pwm();
+  begin_pwm();
   begin_display();
   begin_scd30();
   delay(100);
@@ -84,11 +85,59 @@ void setup()
 }
 
 /****************************/
+/*** BLYNK WRITE ***/
+char main_switch = 0; // 0-OFF, 1-ON
+
+BLYNK_WRITE(MAIN_ON_OFF) // Executes when the value of virtual pin 0 changes
+{
+  if (param.asInt() == 0)
+  {
+    // execute this code if the switch widget is now OFF
+    main_switch = 0;
+  }
+  else if (param.asInt() == 1)
+  {
+    // execute this code if the switch widget is now ON
+    main_switch = 1;
+  }
+}
+
+char auto_man = 0; // 0-auto, 1-man
+BLYNK_WRITE(AUTO_MAN)
+{
+  if (param.asInt() == 0)
+  {
+    // Growbox in AUTO mode
+    auto_man = 0;
+  }
+  else if (param.asInt() == 1)
+  {
+    // Growbox in MAN mode
+    auto_man = 1;
+  }
+}
+
+char growth_phase = 0;
+BLYNK_WRITE(GROWTH_PHASE)
+{
+  if (param.asInt() == 0)
+  {
+    // Growbox in growth phase 1
+    growth_phase = GP1;
+  }
+  else if (param.asInt() == 1)
+  {
+    // Growbox in growth phase 2
+    growth_phase = GP2;
+  }
+}
+
+/*** BLYNK WRITE ***/
 
 unsigned long time_temp = time_mark();
 float air_temp, air_hum;
 float room_temp, heater_temp;
-char growth_phase;
+//char growth_phase;
 unsigned char pwm_duty = 0;
 
 void loop()
@@ -104,18 +153,18 @@ void loop()
     Serial.print("Heater_temp "), Serial.println(heater_temp);
     time_temp = time_mark();
     // Test Blynk
-    Blynk.virtualWrite(AIR_TEMP,air_temp);
-    Blynk.virtualWrite(AIR_HUM,air_hum);
-    Blynk.virtualWrite(ROOM_TEMP,room_temp);
-    Blynk.virtualWrite(HEATER_TEMP,heater_temp);
+    Blynk.virtualWrite(AIR_TEMP, air_temp);
+    Blynk.virtualWrite(AIR_HUM, air_hum);
+    Blynk.virtualWrite(ROOM_TEMP, room_temp);
+    Blynk.virtualWrite(HEATER_TEMP, heater_temp);
     // Test PWM outputs
-    //ledcWrite(HUMIDIFIER, pwm_duty);
-    //ledcWrite(LEDS, pwm_duty);
-    //ledcWrite(FAN, pwm_duty);
-    //ledcWrite(HEATING_PAD1, pwm_duty);
-    //ledcWrite(HEATING_PAD2, pwm_duty);
-    //pwm_duty = pwm_duty + 50;
-    //if (pwm_duty >= 255)
+    // ledcWrite(HUMIDIFIER, pwm_duty);
+    // ledcWrite(LEDS, pwm_duty);
+    // ledcWrite(FAN, pwm_duty);
+    // ledcWrite(HEATING_PAD1, pwm_duty);
+    // ledcWrite(HEATING_PAD2, pwm_duty);
+    // pwm_duty = pwm_duty + 50;
+    // if (pwm_duty >= 255)
     //{
     //  pwm_duty = 0;
     //}
@@ -131,7 +180,6 @@ void loop()
   }*/
 
   BlynkEdgent.run();
-
 }
 
 /****************************
@@ -157,17 +205,18 @@ Return 1 if OK, 0 if ERROR
 */
 char begin_display()
 {
-  if(!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADR)) { 
+  if (!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADR))
+  {
     Serial.println(F("Display error"));
     return 0; // ERROR
   }
-  display.clearDisplay(); // Clear display
-  display.setTextSize(2); // Normal 1:1 pixel scale
+  display.clearDisplay();              // Clear display
+  display.setTextSize(2);              // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE); // Draw white text
-  display.setCursor(0,0); // Start at top-left corner
+  display.setCursor(0, 0);             // Start at top-left corner
   display.println(F("Shroombox ")), display.println(BLYNK_FIRMWARE_VERSION);
   display.display(); // Show on display
-  return 1; // OK
+  return 1;          // OK
 }
 
 /*
@@ -234,7 +283,7 @@ Return 1 if OK, 0 if ERROR
 */
 char begin_scd30()
 {
-  //Wire.begin();
+  // Wire.begin();
   if (!co2.begin())
   {
     Serial.println(F("Failed to read from CO2 sensor!"));
@@ -351,4 +400,38 @@ void reg_temp(float measured_temp, float desired_temp, float hyst, char pwm_ch)
   {
     ledcWrite(pwm_ch, 0);
   }
+}
+
+void mode()
+{ /* Function checks mode and execute auto/man mode functions */
+  if (main_switch == 1)
+  {
+    if (auto_man == 0)
+    {
+      // auto mode
+      auto_mode();
+    }
+    else if (auto_man == 1)
+    {
+      // manual mode
+      manual_mode();
+    }
+  }
+  else
+  {
+    shutdown();
+  }
+}
+
+void auto_mode(){
+
+}
+
+void manual_mode()
+{
+  
+}
+
+void shutdown()
+{
 }
