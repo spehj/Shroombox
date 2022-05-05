@@ -49,7 +49,7 @@ OneWire oneWire2(DS18B20_2_PIN);
 DallasTemperature sensor1(&oneWire1);
 DallasTemperature sensor2(&oneWire2);
 AccelStepper stepper(AccelStepper::FULL4WIRE, STPR_PIN1, STPR_PIN2, STPR_PIN3, STPR_PIN4);
-SCD30 co2;
+SCD30 sensorco2;
 
 /****************************
 Prototypes of functions */
@@ -164,6 +164,7 @@ BLYNK_WRITE(HUM_MAN)
 unsigned long time_temp = time_mark();
 float air_temp, air_hum;
 float room_temp, heater_temp;
+uint16_t co2;
 // char growth_phase;
 unsigned char pwm_duty = 0;
 
@@ -178,12 +179,19 @@ void loop()
     read_ds18b20(room_temp, heater_temp);
     Serial.print("Room_temp "), Serial.println(room_temp);
     Serial.print("Heater_temp "), Serial.println(heater_temp);
+    if (sensorco2.dataAvailable())
+    {
+      co2 = sensorco2.getCO2();
+      Serial.print("co2(ppm): "), Serial.println(co2);
+    }
+
     time_temp = time_mark();
     // Test Blynk
     Blynk.virtualWrite(AIR_TEMP, air_temp);
     Blynk.virtualWrite(AIR_HUM, air_hum);
     Blynk.virtualWrite(ROOM_TEMP, room_temp);
     Blynk.virtualWrite(HEATER_TEMP, heater_temp);
+    Blynk.virtualWrite(CO2, co2);
 
   }
   mode();
@@ -288,7 +296,7 @@ Return 1 if OK, 0 if ERROR
 char begin_scd30()
 {
   // Wire.begin();
-  if (!co2.begin())
+  if (!sensorco2.begin())
   {
     Serial.println(F("Failed to read from CO2 sensor!"));
     return 0; // ERROR
