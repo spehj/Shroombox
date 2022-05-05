@@ -23,7 +23,7 @@ GitHub: https://github.com/spehj/Shroombox
 
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
-#define BLYNK_FIRMWARE_VERSION "0.1.2"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.5"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 #define BLYNK_PRINT Serial               //#define BLYNK_DEBUG
 #define APP_DEBUG
 #include "BlynkEdgent.h" // Must be below blynk defines!
@@ -95,6 +95,7 @@ BLYNK_WRITE(MAIN_ON_OFF) // Executes when the value of virtual pin 0 changes
   {
     // execute this code if the switch widget is now OFF
     main_switch = 0;
+    shutdown();
   }
   else if (param.asInt() == 1)
   {
@@ -133,12 +134,37 @@ BLYNK_WRITE(GROWTH_PHASE)
   }
 }
 
-/*** BLYNK WRITE ***/
+float pwm_scale_factor = 2.55; 
+unsigned int led_man_pwm = 0; // LED percentage from 0 to 100 times 2.5 to scale from 0 to 255
+BLYNK_WRITE(LED_MAN)
+{
+  led_man_pwm = (int)round((param.asInt()) * pwm_scale_factor);
+}
+
+unsigned int heatpad_man_pwm = 0;
+BLYNK_WRITE(HEATPAD_MAN)
+{
+  heatpad_man_pwm = (int)round((param.asInt()) * pwm_scale_factor);
+}
+
+unsigned int fan_man_pwm = 0;
+BLYNK_WRITE(VENTILATOR_MAN)
+{
+  fan_man_pwm = (int)round((param.asInt()) * pwm_scale_factor);
+}
+
+unsigned int hum_man = 0;
+BLYNK_WRITE(HUM_MAN)
+{
+  hum_man = (int)round((param.asInt()) * pwm_scale_factor)*100;
+}
+
+/*** BLYNK WRITE END***/
 
 unsigned long time_temp = time_mark();
 float air_temp, air_hum;
 float room_temp, heater_temp;
-//char growth_phase;
+// char growth_phase;
 unsigned char pwm_duty = 0;
 
 void loop()
@@ -158,27 +184,9 @@ void loop()
     Blynk.virtualWrite(AIR_HUM, air_hum);
     Blynk.virtualWrite(ROOM_TEMP, room_temp);
     Blynk.virtualWrite(HEATER_TEMP, heater_temp);
-    // Test PWM outputs
-    // ledcWrite(HUMIDIFIER, pwm_duty);
-    // ledcWrite(LEDS, pwm_duty);
-    // ledcWrite(FAN, pwm_duty);
-    // ledcWrite(HEATING_PAD1, pwm_duty);
-    // ledcWrite(HEATING_PAD2, pwm_duty);
-    // pwm_duty = pwm_duty + 50;
-    // if (pwm_duty >= 255)
-    //{
-    //  pwm_duty = 0;
-    //}
+
   }
-  /*
-  if (growth_phase == GROWTH_PHASE1)
-  { // Phase 1
-    // TO DO...
-  }
-  if (growth_phase == GROWTH_PHASE2)
-  { //Phase 2
-    // TO DO...
-  }*/
+  mode();
 
   BlynkEdgent.run();
 }
@@ -404,6 +412,7 @@ void mode()
   {
     if (auto_man == 0)
     {
+      
       // auto mode
       auto_mode();
     }
@@ -413,21 +422,32 @@ void mode()
       manual_mode();
     }
   }
-  else
+  else if (main_switch == 0)
   {
     shutdown();
   }
 }
 
-void auto_mode(){
-
+void auto_mode()
+{
 }
 
 void manual_mode()
 {
-  
+  ledcWrite(HUMIDIFIER, hum_man);
+  ledcWrite(LEDS, led_man_pwm);
+  ledcWrite(FAN, fan_man_pwm);
+  ledcWrite(HEATING_PAD1, heatpad_man_pwm);
+  ledcWrite(HEATING_PAD2, heatpad_man_pwm);
 }
 
+// If main switch is OFF shutdown all actuators
 void shutdown()
 {
+  ledcWrite(HUMIDIFIER, 0);
+  ledcWrite(LEDS, 0);
+  ledcWrite(FAN, 0);
+  ledcWrite(HEATING_PAD1, 0);
+  ledcWrite(HEATING_PAD2, 0);
+
 }
