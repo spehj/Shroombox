@@ -14,7 +14,7 @@ GitHub: https://github.com/spehj/Shroombox
 #include <Wire.h>
 #include "SparkFun_SCD30_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_SCD30
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_SH1106.h> //<Adafruit_SSD1306.h>
 #include "IO_Defs.h"
 #include "Blynk_Virtual_Pins.h"
 
@@ -40,7 +40,8 @@ GitHub: https://github.com/spehj/Shroombox
 #define DISPLAY_W 128 // OLED display width
 #define DISPLAY_H 64  // OLED display height
 #define DISPLAY_ADR 0x3C
-Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
+Adafruit_SH1106 display(SDA, SCL); 
+//Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
 
 DHT dht(DHT_PIN, DHT22);
 OneWire oneWire1(DS18B20_1_PIN);
@@ -61,7 +62,7 @@ char begin_scd30();
 void begin_pwm();
 char read_dht22(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
-char begin_display();
+void begin_display();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
 void reg_temp(float measured_temp, float desired_temp, float hyst, char pwm_ch);
@@ -203,20 +204,15 @@ char begin_display();
 Setup display
 Return 1 if OK, 0 if ERROR
 */
-char begin_display()
+void begin_display()
 {
-  if (!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADR))
-  {
-    Serial.println(F("Display error"));
-    return 0; // ERROR
-  }
+  display.begin(SH1106_SWITCHCAPVCC, DISPLAY_ADR);
   display.clearDisplay();              // Clear display
   display.setTextSize(2);              // Normal 1:1 pixel scale
-  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setTextColor(WHITE); // Draw white text
   display.setCursor(0, 0);             // Start at top-left corner
   display.println(F("Shroombox ")), display.println(BLYNK_FIRMWARE_VERSION);
   display.display(); // Show on display
-  return 1;          // OK
 }
 
 /*
