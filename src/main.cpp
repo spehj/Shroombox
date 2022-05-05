@@ -37,6 +37,8 @@ GitHub: https://github.com/spehj/Shroombox
 #define GROWTH_PHASE1 1
 #define GROWTH_STAGE2 2
 
+
+
 #define DISPLAY_W 128 // OLED display width
 #define DISPLAY_H 32 // OLED display height
 #define DISPLAY_ADR 0x3D
