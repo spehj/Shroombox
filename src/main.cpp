@@ -9,6 +9,8 @@ GitHub: https://github.com/spehj/Shroombox
 #include <AccelStepper.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
+#include <Wire.h>
+#include <SHT31.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <Wire.h>
@@ -40,6 +42,8 @@ GitHub: https://github.com/spehj/Shroombox
 #define DISPLAY_W 128 // OLED display width
 #define DISPLAY_H 64  // OLED display height
 #define DISPLAY_ADR 0x3C
+
+#define SHT30_ADDRESS   0x44
 Adafruit_SH1106 display(SDA, SCL); 
 //Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
 
@@ -50,17 +54,18 @@ DallasTemperature sensor1(&oneWire1);
 DallasTemperature sensor2(&oneWire2);
 AccelStepper stepper(AccelStepper::FULL4WIRE, STPR_PIN1, STPR_PIN2, STPR_PIN3, STPR_PIN4);
 SCD30 co2;
+SHT31 sht;
 
 /****************************
 Prototypes of functions */
 
 void begin_stepper();
 void begin_io();
-char begin_dht22();
+char begin_sht30();
 char begin_ds18b20();
 char begin_scd30();
 void begin_pwm();
-char read_dht22(float &temp, float &hum);
+char read_sht30(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
 void begin_display();
 char time_passed(unsigned long timemark, unsigned long delay);
@@ -70,11 +75,13 @@ void auto_mode();
 void manual_mode();
 void shutdown();
 void mode();
+
+//char read_sht30()
 /****************************/
 void setup()
 {
   Serial.begin(115200);
-  begin_dht22();
+  begin_sht30();
   begin_ds18b20();
   // begin_stepper();
   begin_io();
@@ -172,7 +179,7 @@ void loop()
 
   if (time_passed(time_temp, 4000))
   { // Measure every 4s
-    read_dht22(air_temp, air_hum);
+    read_sht30(air_temp, air_hum);
     Serial.print("Air_temp "), Serial.println(air_temp);
     Serial.print("Air_hum "), Serial.println(air_hum);
     read_ds18b20(room_temp, heater_temp);
@@ -239,11 +246,15 @@ char begin_dht22();
 Setup DHT22 sensor
 Return 1 if OK, 0 if ERROR
 */
-char begin_dht22()
+char begin_sht30()
 {
-  dht.begin();
-  float Humidity = dht.readHumidity();
-  float Temperature = dht.readTemperature();
+  Wire.begin();
+  sht.begin(SHT30_ADDRESS);
+  Wire.setClock(100000);
+  sht.read();
+
+  float Humidity = sht.getHumidity();
+  float Temperature = sht.getTemperature();
   if (isnan(Humidity) || isnan(Temperature))
   { // If read from sensor fail (sensor not connected, ...)
     Humidity = 0;
@@ -348,10 +359,10 @@ Return temp and humidity
 If both values are 0 => sensor ERROR
 Return 1 if OK, 0 if ERROR
 */
-char read_dht22(float &temp, float &hum)
+char read_sht30(float &temp, float &hum)
 {
-  temp = dht.readTemperature();
-  hum = dht.readHumidity();
+  temp = sht.getTemperature();
+  hum = sht.getHumidity();
   if (isnan(temp) || isnan(hum))
   { // If read from sensor fail (sensor not connected, ...)
     temp = 0;
