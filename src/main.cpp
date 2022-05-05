@@ -34,7 +34,7 @@ GitHub: https://github.com/spehj/Shroombox
 #define HEATING_PAD1 3 // PWM channel 3
 #define HEATING_PAD2 4 // PWM channel 4
 
-#define GP1 1 //Comment
+#define GP1 1
 #define GP2 2
 
 
