@@ -1,7 +1,7 @@
 /*
 Product: Shroombox
 Authors: Matic Sedej, Jure Špeh
-Date: April 2022
+Date: May 2022
 GitHub: https://github.com/spehj/Shroombox
 */
 
@@ -12,27 +12,35 @@ GitHub: https://github.com/spehj/Shroombox
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <Wire.h>
-#include "SparkFun_SCD30_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD30
+#include "SparkFun_SCD30_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_SCD30
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include "IO_Defs.h"
+#include "Blynk_Virtual_Pins.h"
 
 // https://docs.blynk.io/en/getting-started/activating-devices/blynk-edgent-wifi-provisioning
-// Fill information from your Blynk Template here
-//#define BLYNK_TEMPLATE_ID "xxxxx"
-//#define BLYNK_DEVICE_NAME "yyyyy"
-#define BLYNK_FIRMWARE_VERSION "0.1.0"
+// https://docs.blynk.io/en/getting-started/updating-devices-firmwares-ota
+
+#define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
+#define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
+#define BLYNK_FIRMWARE_VERSION "0.1.2" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
-#include "BlynkEdgent.h" //Must be below blynk defines!
+#include "BlynkEdgent.h" // Must be below blynk defines!
 
-//#define VERSION "v1.0"
-#define CH0 0 // PWM channel number
-#define CH1 1 // PWM channel number
-#define CH2 2 // PWM channel number
-#define CH3 3 // PWM channel number
-#define CH4 4 // PWM channel number
+#define HUMIDIFIER 0 // PWM channel 0
+#define LEDS 1 // PWM channel 1
+#define FAN 2 // PWM channel 2
+#define HEATING_PAD1 3 // PWM channel 3
+#define HEATING_PAD2 4 // PWM channel 4
 
-#define GROWTH_STAGE1 1
+#define GROWTH_PHASE1 1
 #define GROWTH_STAGE2 2
+
+#define DISPLAY_W 128 // OLED display width
+#define DISPLAY_H 32 // OLED display height
+#define DISPLAY_ADR 0x3D
+Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
 
 DHT dht(DHT_PIN, DHT22);
 OneWire oneWire1(DS18B20_1_PIN);
@@ -53,8 +61,10 @@ char begin_scd30();
 void begin_pwm();
 char read_dht22(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
+char begin_display();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
+void reg_temp(float measured_temp, float desired_temp, float hyst, char pwm_ch);
 
 /****************************/
 void setup()
@@ -62,40 +72,64 @@ void setup()
   Serial.begin(115200);
   begin_dht22();
   begin_ds18b20();
-  begin_stepper();
+  //begin_stepper();
   begin_io();
-  begin_pwm();
+  //begin_pwm();
+  begin_display();
+  begin_scd30();
+  delay(100);
   BlynkEdgent.begin();
 }
 
 /****************************/
 
 unsigned long time_temp = time_mark();
-float DHT_temp, DHT_hum;
-float DS_temp1, DS_temp2;
-char growth;
+float air_temp, air_hum;
+float room_temp, heater_temp;
+char growth_phase;
+unsigned char pwm_duty = 0;
 
 void loop()
 {
 
-  if (time_passed(time_temp, 5000))
-  { // Measure every 5s
-    read_dht22(DHT_temp, DHT_hum);
-    read_ds18b20(DS_temp1, DS_temp2);
-    Serial.print("DS_temp1 "), Serial.println(DS_temp1);
-    Serial.print("DS_temp2 "), Serial.println(DS_temp2);
+  if (time_passed(time_temp, 4000))
+  { // Measure every 4s
+    read_dht22(air_temp, air_hum);
+    Serial.print("Air_temp "), Serial.println(air_temp);
+    Serial.print("Air_hum "), Serial.println(air_hum);
+    read_ds18b20(room_temp, heater_temp);
+    Serial.print("Room_temp "), Serial.println(room_temp);
+    Serial.print("Heater_temp "), Serial.println(heater_temp);
     time_temp = time_mark();
+    // Test Blynk
+    Blynk.virtualWrite(AIR_TEMP,air_temp);
+    Blynk.virtualWrite(AIR_HUM,air_hum);
+    Blynk.virtualWrite(ROOM_TEMP,room_temp);
+    Blynk.virtualWrite(HEATER_TEMP,heater_temp);
+    // Test PWM outputs
+    //ledcWrite(HUMIDIFIER, pwm_duty);
+    //ledcWrite(LEDS, pwm_duty);
+    //ledcWrite(FAN, pwm_duty);
+    //ledcWrite(HEATING_PAD1, pwm_duty);
+    //ledcWrite(HEATING_PAD2, pwm_duty);
+    //pwm_duty = pwm_duty + 50;
+    //if (pwm_duty >= 255)
+    //{
+    //  pwm_duty = 0;
+    //}
   }
-  if (growth == GROWTH_STAGE1)
-  { // Stage 1
+  /*
+  if (growth_phase == GROWTH_PHASE1)
+  { // Phase 1
     // TO DO...
   }
-  if (growth == GROWTH_STAGE2)
-  { // Stage 2
+  if (growth_phase == GROWTH_PHASE2)
+  { //Phase 2
     // TO DO...
-  }
+  }*/
 
   BlynkEdgent.run();
+
 }
 
 /****************************
@@ -111,7 +145,27 @@ void begin_io()
   pinMode(BTN_1_PIN, INPUT_PULLUP), pinMode(BTN_2_PIN, INPUT_PULLUP); // Enable internal pullup
   // pinMode(MOSFET_1_PIN,OUTPUT), pinMode(MOSFET_2_PIN,OUTPUT), pinMode(MOSFET_3_PIN,OUTPUT);
   // pinMode(MOSFET_4_PIN,OUTPUT), pinMode(MOSFET_5_PIN,OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
+  // pinMode(LED_PIN, OUTPUT);
+}
+
+/*
+char begin_display();
+Setup display
+Return 1 if OK, 0 if ERROR
+*/
+char begin_display()
+{
+  if(!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADR)) { 
+    Serial.println(F("Display error"));
+    return 0; // ERROR
+  }
+  display.clearDisplay(); // Clear display
+  display.setTextSize(2); // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setCursor(0,0); // Start at top-left corner
+  display.println(F("Shroombox ")), display.println(BLYNK_FIRMWARE_VERSION);
+  display.display(); // Show on display
+  return 1; // OK
 }
 
 /*
@@ -178,10 +232,10 @@ Return 1 if OK, 0 if ERROR
 */
 char begin_scd30()
 {
-  Wire.begin();
-  if (co2.begin() == 0)
+  //Wire.begin();
+  if (!co2.begin())
   {
-    Serial.println(F("CO2 sensor not detected..."));
+    Serial.println(F("Failed to read from CO2 sensor!"));
     return 0; // ERROR
   }
   return 1; // OK
@@ -195,16 +249,16 @@ void begin_pwm()
 {
   const int freq = 100; // PWM frequency
   const char res = 8;   // PWM resolution in bits
-  ledcSetup(CH0, freq, res);
-  ledcAttachPin(MOSFET_1_PIN, CH0);
-  ledcSetup(CH1, freq, res);
-  ledcAttachPin(MOSFET_2_PIN, CH1);
-  ledcSetup(CH2, freq, res);
-  ledcAttachPin(MOSFET_3_PIN, CH2);
-  ledcSetup(CH3, freq, res);
-  ledcAttachPin(MOSFET_4_PIN, CH3);
-  ledcSetup(CH4, freq, res);
-  ledcAttachPin(MOSFET_5_PIN, CH4);
+  ledcSetup(HUMIDIFIER, freq, res);
+  ledcAttachPin(MOSFET_1_PIN, HUMIDIFIER);
+  ledcSetup(LEDS, freq, res);
+  ledcAttachPin(MOSFET_2_PIN, LEDS);
+  ledcSetup(FAN, freq, res);
+  ledcAttachPin(MOSFET_3_PIN, FAN);
+  ledcSetup(HEATING_PAD1, freq, res);
+  ledcAttachPin(MOSFET_4_PIN, HEATING_PAD1);
+  ledcSetup(HEATING_PAD2, freq, res);
+  ledcAttachPin(MOSFET_5_PIN, HEATING_PAD2);
 }
 
 /*
@@ -278,4 +332,21 @@ Return value of timer
 unsigned long time_mark()
 {
   return millis();
+}
+
+/*
+void reg_temp()
+Regulate temperature with hysteresis
+*/
+void reg_temp(float measured_temp, float desired_temp, float hyst, char pwm_ch)
+{
+  float dif = measured_temp - desired_temp;
+  if (dif > hyst)
+  {
+    ledcWrite(pwm_ch, 50);
+  }
+  if (dif < hyst)
+  {
+    ledcWrite(pwm_ch, 0);
+  }
 }

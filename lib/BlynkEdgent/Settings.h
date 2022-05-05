@@ -74,11 +74,11 @@
 
 #define BOARD_PWM_MAX                 1023
 
-#define BOARD_LEDC_CHANNEL_1     1
+#define BOARD_LEDC_CHANNEL_1     6 //PWM channels 0-4 already in use in main.c, 2 channels share same frequency (0-1, 2-3, 4-5, 6-7, 8-9,...)
 #define BOARD_LEDC_CHANNEL_2     2
 #define BOARD_LEDC_CHANNEL_3     3
 #define BOARD_LEDC_TIMER_BITS    10
-#define BOARD_LEDC_BASE_FREQ     12000
+#define BOARD_LEDC_BASE_FREQ     5000
 
 #define CONFIG_AP_URL                 "blynk.setup"
 #define CONFIG_DEFAULT_SERVER         "blynk.cloud"
