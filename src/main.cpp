@@ -23,7 +23,7 @@ GitHub: https://github.com/spehj/Shroombox
 
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
-#define BLYNK_FIRMWARE_VERSION "0.1.6"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.9"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 #define BLYNK_PRINT Serial               //#define BLYNK_DEBUG
 #define APP_DEBUG
 #include "BlynkEdgent.h" // Must be below blynk defines!
@@ -62,6 +62,7 @@ char begin_scd30();
 void begin_pwm();
 char read_dht22(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
+String read_sen0193();
 void begin_display();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
@@ -184,6 +185,7 @@ void loop()
       co2 = sensorco2.getCO2();
       Serial.print("co2(ppm): "), Serial.println(co2);
     }
+    String substrate_moist = read_sen0193();
 
     time_temp = time_mark();
     // Test Blynk
@@ -192,6 +194,7 @@ void loop()
     Blynk.virtualWrite(ROOM_TEMP, room_temp);
     Blynk.virtualWrite(HEATER_TEMP, heater_temp);
     Blynk.virtualWrite(CO2, co2);
+    Blynk.virtualWrite(SUBSTRATE_MOIST, substrate_moist);
 
   }
   mode();
@@ -372,6 +375,31 @@ char read_dht22(float &temp, float &hum)
 }
 
 /*
+String read_sen0193()
+*/
+String read_sen0193()
+{
+  const int AirValue = 2000;
+  const int WaterValue = 1000;
+  int intervals = (AirValue - WaterValue)/3;
+  String txt;
+  int adc = analogRead(SEN0193_PIN);
+  if(adc > WaterValue && adc < (WaterValue + intervals))
+  {
+    txt = "Very wet";
+  }
+  else if(adc > (WaterValue + intervals) && adc < (AirValue - intervals))
+  {
+    txt = "Wet";
+  }
+  else if(adc < AirValue && adc > (AirValue - intervals))
+  {
+    txt = "Dry";
+  }
+  return txt;
+}
+
+/*
 byte time_passed(unsigned long timemark, unsigned long delay)
 Check if more (or equal) of "delay" millisecond has passed or not
 Return 1 if yes, 0 if not
@@ -457,5 +485,4 @@ void shutdown()
   ledcWrite(FAN, 0);
   ledcWrite(HEATING_PAD1, 0);
   ledcWrite(HEATING_PAD2, 0);
-
 }

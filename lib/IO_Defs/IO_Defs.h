@@ -34,6 +34,6 @@
 #define PHOTRES_PIN 35 // Brightness sensor, connector J21
 
 //IO pin for SEN0193
-#define SEN_PIN 34 // Soil moisture sensor, connector J20
+#define SEN0193_PIN 34 // Soil moisture sensor, connector J20
 
 #endif
