@@ -34,14 +34,14 @@ GitHub: https://github.com/spehj/Shroombox
 #define HEATING_PAD1 3 // PWM channel 3
 #define HEATING_PAD2 4 // PWM channel 4
 
-#define GROWTH_PHASE1 1
-#define GROWTH_STAGE2 2
+#define GP1 1
+#define GP2 2
 
 
 
 #define DISPLAY_W 128 // OLED display width
-#define DISPLAY_H 32 // OLED display height
-#define DISPLAY_ADR 0x3D
+#define DISPLAY_H 64 // OLED display height
+#define DISPLAY_ADR 0x3C
 Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
 
 DHT dht(DHT_PIN, DHT22);
