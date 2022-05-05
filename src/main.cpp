@@ -25,7 +25,9 @@ GitHub: https://github.com/spehj/Shroombox
 
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
-#define BLYNK_FIRMWARE_VERSION "0.1.8"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+
+#define BLYNK_FIRMWARE_VERSION "0.1.9"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+
 #define BLYNK_PRINT Serial               //#define BLYNK_DEBUG
 #define APP_DEBUG
 #include "BlynkEdgent.h" // Must be below blynk defines!
@@ -53,8 +55,12 @@ OneWire oneWire2(DS18B20_2_PIN);
 DallasTemperature sensor1(&oneWire1);
 DallasTemperature sensor2(&oneWire2);
 AccelStepper stepper(AccelStepper::FULL4WIRE, STPR_PIN1, STPR_PIN2, STPR_PIN3, STPR_PIN4);
-SCD30 co2;
+
+SCD30 sensorco2;
+
+
 SHT31 sht;
+
 
 /****************************
 Prototypes of functions */
@@ -67,6 +73,7 @@ char begin_scd30();
 void begin_pwm();
 char read_sht30(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
+String read_sen0193();
 void begin_display();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
@@ -171,6 +178,7 @@ BLYNK_WRITE(HUM_MAN)
 unsigned long time_temp = time_mark();
 float air_temp, air_hum;
 float room_temp, heater_temp;
+uint16_t co2;
 // char growth_phase;
 unsigned char pwm_duty = 0;
 
@@ -185,12 +193,21 @@ void loop()
     read_ds18b20(heater_temp,room_temp);
     Serial.print("Room_temp "), Serial.println(room_temp);
     Serial.print("Heater_temp "), Serial.println(heater_temp);
+    if (sensorco2.dataAvailable())
+    {
+      co2 = sensorco2.getCO2();
+      Serial.print("co2(ppm): "), Serial.println(co2);
+    }
+    String substrate_moist = read_sen0193();
+
     time_temp = time_mark();
     // Test Blynk
     Blynk.virtualWrite(AIR_TEMP, air_temp);
     Blynk.virtualWrite(AIR_HUM, air_hum);
     Blynk.virtualWrite(ROOM_TEMP, room_temp);
     Blynk.virtualWrite(HEATER_TEMP, heater_temp);
+    Blynk.virtualWrite(CO2, co2);
+    Blynk.virtualWrite(SUBSTRATE_MOIST, substrate_moist);
 
   }
   mode();
@@ -299,7 +316,7 @@ Return 1 if OK, 0 if ERROR
 char begin_scd30()
 {
   // Wire.begin();
-  if (!co2.begin())
+  if (!sensorco2.begin())
   {
     Serial.println(F("Failed to read from CO2 sensor!"));
     return 0; // ERROR
@@ -372,6 +389,31 @@ char read_sht30(float &temp, float &hum)
   }
   // Serial.print(F("DHT22: ")), Serial.print(temp), Serial.print(F(" ")), Serial.println(hum);
   return 1; // OK
+}
+
+/*
+String read_sen0193()
+*/
+String read_sen0193()
+{
+  const int AirValue = 2000;
+  const int WaterValue = 1000;
+  int intervals = (AirValue - WaterValue)/3;
+  String txt;
+  int adc = analogRead(SEN0193_PIN);
+  if(adc > WaterValue && adc < (WaterValue + intervals))
+  {
+    txt = "Very wet";
+  }
+  else if(adc > (WaterValue + intervals) && adc < (AirValue - intervals))
+  {
+    txt = "Wet";
+  }
+  else if(adc < AirValue && adc > (AirValue - intervals))
+  {
+    txt = "Dry";
+  }
+  return txt;
 }
 
 /*
@@ -460,5 +502,4 @@ void shutdown()
   ledcWrite(FAN, 0);
   ledcWrite(HEATING_PAD1, 0);
   ledcWrite(HEATING_PAD2, 0);
-
 }
