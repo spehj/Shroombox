@@ -82,6 +82,7 @@ void auto_mode();
 void manual_mode();
 void shutdown();
 void mode();
+char check_wifi_signal();
 
 //char read_sht30()
 /****************************/
