@@ -503,3 +503,21 @@ void shutdown()
   ledcWrite(HEATING_PAD1, 0);
   ledcWrite(HEATING_PAD2, 0);
 }
+
+char check_wifi_signal(){
+  int dBm = WiFi.RSSI();
+  char quality;
+  if(dBm <= -100) // Lower limit
+  {
+    quality = 0;
+  }
+  else if(dBm >= -50) // Upper limit
+  {  
+    quality = 100;
+  }
+  else
+  {
+    quality = 2 * (dBm + 100);
+  }
+  return quality;
+}
