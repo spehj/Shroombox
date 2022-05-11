@@ -73,11 +73,11 @@ char begin_scd30();
 void begin_pwm();
 char read_sht30(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
-String read_sen0193();
+int read_sen0193();
 void begin_display();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
-void reg_temp(float measured_temp, float desired_temp, float hyst, char pwm_ch);
+void reg_temp(float measured_temp, float desired_temp, float hyst);
 void auto_mode();
 void manual_mode();
 void shutdown();
@@ -181,6 +181,8 @@ float air_temp, air_hum;
 float room_temp, heater_temp;
 char wifi_strength;
 uint16_t co2;
+int substrate_moist;
+float hyst_temp, hyst_hum, hyst_co2;
 // char growth_phase;
 unsigned char pwm_duty = 0;
 
@@ -190,17 +192,12 @@ void loop()
   if (time_passed(time_temp, 4000))
   { // Measure every 4s
     read_sht30(air_temp, air_hum);
-    Serial.print("Air_temp "), Serial.println(air_temp);
-    Serial.print("Air_hum "), Serial.println(air_hum);
     read_ds18b20(heater_temp,room_temp);
-    Serial.print("Room_temp "), Serial.println(room_temp);
-    Serial.print("Heater_temp "), Serial.println(heater_temp);
     if (sensorco2.dataAvailable())
     {
       co2 = sensorco2.getCO2();
-      Serial.print("co2(ppm): "), Serial.println(co2);
     }
-    String substrate_moist = read_sen0193();
+    substrate_moist = read_sen0193();
     wifi_strength = check_wifi_strength();
     time_temp = time_mark();
     // Test Blynk
@@ -279,7 +276,7 @@ char begin_sht30()
   { // If read from sensor fail (sensor not connected, ...)
     Humidity = 0;
     Temperature = 0;
-    Serial.println(F("Failed to read from DHT sensor!"));
+    //Serial.println(F("Failed to read from DHT sensor!")); 
     return 0; // ERROR
   }
   return 1; // OK
@@ -300,12 +297,12 @@ char begin_ds18b20()
   float temp2 = sensor2.getTempCByIndex(0);
   if (temp1 == DEVICE_DISCONNECTED_C)
   {
-    Serial.println(F("Failed to read from DS18B20 sensor1!"));
+    //Serial.println(F("Failed to read from DS18B20 sensor1!")); 
     return 0; // ERROR sensor1
   }
   if (temp2 == DEVICE_DISCONNECTED_C)
   {
-    Serial.println(F("Failed to read from DS18B20 sensor2!"));
+    //Serial.println(F("Failed to read from DS18B20 sensor2!")); 
     return 0; // ERROR sensor2
   }
   return 1; // OK
@@ -321,7 +318,7 @@ char begin_scd30()
   // Wire.begin();
   if (!sensorco2.begin())
   {
-    Serial.println(F("Failed to read from CO2 sensor!"));
+    //Serial.println(F("Failed to read from CO2 sensor!"));
     return 0; // ERROR
   }
   return 1; // OK
@@ -361,12 +358,12 @@ char read_ds18b20(float &temp1, float &temp2)
   temp2 = sensor2.getTempCByIndex(0);
   if (temp1 == DEVICE_DISCONNECTED_C)
   {
-    Serial.println(F("Failed to read from DS18B20 sensor1!"));
+    //Serial.println(F("Failed to read from DS18B20 sensor1!"));
     return 0; // ERROR sensor1
   }
   if (temp2 == DEVICE_DISCONNECTED_C)
   {
-    Serial.println(F("Failed to read from DS18B20 sensor2!"));
+    //Serial.println(F("Failed to read from DS18B20 sensor2!"));
     return 0; // ERROR sensor2
   }
   return 1; // OK
@@ -387,7 +384,7 @@ char read_sht30(float &temp, float &hum)
   { // If read from sensor fail (sensor not connected, ...)
     temp = 0;
     hum = 0;
-    Serial.println(F("Failed to read from DHT sensor!"));
+    //Serial.println(F("Failed to read from DHT sensor!"));
     return 0; // ERROR
   }
   // Serial.print(F("DHT22: ")), Serial.print(temp), Serial.print(F(" ")), Serial.println(hum);
@@ -397,14 +394,15 @@ char read_sht30(float &temp, float &hum)
 /*
 String read_sen0193()
 */
-String read_sen0193()
+int read_sen0193()
 {
-  const int AirValue = 2000;
+  /*const int AirValue = 2000;
   const int WaterValue = 1000;
   int intervals = (AirValue - WaterValue)/3;
-  String txt;
-  int adc = analogRead(SEN0193_PIN);
-  if(adc > WaterValue && adc < (WaterValue + intervals))
+  String txt;*/
+  int adc;
+  adc = analogRead(SEN0193_PIN);
+  /*if(adc > WaterValue && adc < (WaterValue + intervals))
   {
     txt = "Very wet";
   }
@@ -416,7 +414,8 @@ String read_sen0193()
   {
     txt = "Dry";
   }
-  return txt;
+  return txt;*/
+  return adc;
 }
 
 /*
@@ -449,16 +448,49 @@ unsigned long time_mark()
 void reg_temp()
 Regulate temperature with hysteresis
 */
-void reg_temp(float measured_temp, float desired_temp, float hyst, char pwm_ch)
+void reg_temp(float measured_temp, float desired_temp, float hyst)
 {
-  float dif = measured_temp - desired_temp;
-  if (dif > hyst)
+  if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
   {
-    ledcWrite(pwm_ch, 50);
+    ledcWrite(HEATING_PAD1, 150); // 60% duty cycle
+    ledcWrite(HEATING_PAD2, 150); // 60% duty cycle
   }
-  if (dif < hyst)
+  else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
   {
-    ledcWrite(pwm_ch, 0);
+    ledcWrite(HEATING_PAD1, 0); // 0% duty cycle
+    ledcWrite(HEATING_PAD2, 0); // 0% duty cycle
+  }
+}
+
+/*
+void reg_hum()
+Regulate humidity with hysteresis
+*/
+void reg_hum(float measured_temp, float desired_temp, float hyst)
+{
+  if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
+  {
+    ledcWrite(HUMIDIFIER, 150); // 60% duty cycle
+  }
+  else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
+  {
+    ledcWrite(HUMIDIFIER, 0); // 0% duty cycle
+  }
+}
+
+/*
+void reg_co2()
+Regulate co2 with hysteresis
+*/
+void reg_co2(float measured_temp, float desired_temp, float hyst)
+{
+  if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
+  {
+    ledcWrite(FAN, 150); // 60% duty cycle
+  }
+  else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
+  {
+    ledcWrite(FAN, 0); // 0% duty cycle
   }
 }
 
@@ -468,7 +500,6 @@ void mode()
   {
     if (auto_man == 0)
     {
-      
       // auto mode
       auto_mode();
     }
@@ -486,6 +517,9 @@ void mode()
 
 void auto_mode()
 {
+  //reg_temp(air_temp, /*from blynk*/, hyst_temp);
+  //reg_hum(air_hum, /*from blynk*/, hyst_hum);
+  //reg_co2(co2, /*from blynk*/, hyst_co2);
 }
 
 void manual_mode()
