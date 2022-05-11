@@ -82,6 +82,7 @@ void auto_mode();
 void manual_mode();
 void shutdown();
 void mode();
+char check_wifi_strength();
 
 //char read_sht30()
 /****************************/
@@ -178,6 +179,7 @@ BLYNK_WRITE(HUM_MAN)
 unsigned long time_temp = time_mark();
 float air_temp, air_hum;
 float room_temp, heater_temp;
+char wifi_strength;
 uint16_t co2;
 // char growth_phase;
 unsigned char pwm_duty = 0;
@@ -199,7 +201,7 @@ void loop()
       Serial.print("co2(ppm): "), Serial.println(co2);
     }
     String substrate_moist = read_sen0193();
-
+    wifi_strength = check_wifi_strength();
     time_temp = time_mark();
     // Test Blynk
     Blynk.virtualWrite(AIR_TEMP, air_temp);
@@ -208,6 +210,7 @@ void loop()
     Blynk.virtualWrite(HEATER_TEMP, heater_temp);
     Blynk.virtualWrite(CO2, co2);
     Blynk.virtualWrite(SUBSTRATE_MOIST, substrate_moist);
+    Blynk.virtualWrite(WIFI_STRENGTH, wifi_strength);
 
   }
   mode();
@@ -502,4 +505,27 @@ void shutdown()
   ledcWrite(FAN, 0);
   ledcWrite(HEATING_PAD1, 0);
   ledcWrite(HEATING_PAD2, 0);
+}
+
+/*
+char check_wifi_strength()
+Get value of wifi signal strength
+Return wifi signal strength in %
+*/
+char check_wifi_strength(){
+  int dBm = WiFi.RSSI();
+  char quality;
+  if(dBm <= -100) // Lower limit
+  {
+    quality = 0;
+  }
+  else if(dBm >= -50) // Upper limit
+  {  
+    quality = 100;
+  }
+  else
+  {
+    quality = 2 * (dBm + 100);
+  }
+  return quality;
 }
