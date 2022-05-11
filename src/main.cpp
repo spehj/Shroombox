@@ -551,13 +551,13 @@ void reg_temp(float measured_temp, float desired_temp, float hyst)
 void reg_hum()
 Regulate humidity with hysteresis
 */
-void reg_hum(float measured_temp, float desired_temp, float hyst)
+void reg_hum(float measured_hum, float desired_hum, float hyst)
 {
-  if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
+  if (measured_hum <= (desired_hum - hyst/2.0)) // Lower limit
   {
     ledcWrite(HUMIDIFIER, 150); // 60% duty cycle
   }
-  else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
+  else if (measured_hum >= (desired_hum + hyst/2.0)) // Upper limit
   {
     ledcWrite(HUMIDIFIER, 0); // 0% duty cycle
   }
@@ -567,15 +567,15 @@ void reg_hum(float measured_temp, float desired_temp, float hyst)
 void reg_co2()
 Regulate co2 with hysteresis
 */
-void reg_co2(float measured_temp, float desired_temp, float hyst)
+void reg_co2(float measured_co2, float desired_co2, float hyst)
 {
-  if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
-  {
-    ledcWrite(FAN, 150); // 60% duty cycle
-  }
-  else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
+  if (measured_co2 <= (desired_co2 - hyst/2.0)) // Lower limit
   {
     ledcWrite(FAN, 0); // 0% duty cycle
+  }
+  else if (measured_co2 >= (desired_co2 + hyst/2.0)) // Upper limit
+  {
+    ledcWrite(FAN, 150); // 60% duty cycle
   }
 }
 
