@@ -453,12 +453,12 @@ void reg_temp(float measured_temp, float desired_temp, float hyst)
   if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
   {
     ledcWrite(HEATING_PAD1, 150); // 60% duty cycle
-    ledcWrite(HEATING_PAD1, 150); // 60% duty cycle
+    ledcWrite(HEATING_PAD2, 150); // 60% duty cycle
   }
   else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
   {
     ledcWrite(HEATING_PAD1, 0); // 0% duty cycle
-    ledcWrite(HEATING_PAD1, 0); // 0% duty cycle
+    ledcWrite(HEATING_PAD2, 0); // 0% duty cycle
   }
 }
 
@@ -471,11 +471,9 @@ void reg_hum(float measured_temp, float desired_temp, float hyst)
   if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
   {
     ledcWrite(HUMIDIFIER, 150); // 60% duty cycle
-    ledcWrite(HUMIDIFIER, 150); // 60% duty cycle
   }
   else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
   {
-    ledcWrite(HUMIDIFIER, 0); // 0% duty cycle
     ledcWrite(HUMIDIFIER, 0); // 0% duty cycle
   }
 }
@@ -489,11 +487,9 @@ void reg_co2(float measured_temp, float desired_temp, float hyst)
   if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
   {
     ledcWrite(FAN, 150); // 60% duty cycle
-    ledcWrite(FAN, 150); // 60% duty cycle
   }
   else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
   {
-    ledcWrite(FAN, 0); // 0% duty cycle
     ledcWrite(FAN, 0); // 0% duty cycle
   }
 }
@@ -504,7 +500,6 @@ void mode()
   {
     if (auto_man == 0)
     {
-      
       // auto mode
       auto_mode();
     }
@@ -522,9 +517,9 @@ void mode()
 
 void auto_mode()
 {
-  //reg_temp(air_temp, /*from blynk*/, hyst_temp)
-  //reg_hum(air_hum, /*from blynk*/, hyst_hum)
-  //reg_co2(co2, /*from blynk*/, hyst_co2)
+  //reg_temp(air_temp, /*from blynk*/, hyst_temp);
+  //reg_hum(air_hum, /*from blynk*/, hyst_hum);
+  //reg_co2(co2, /*from blynk*/, hyst_co2);
 }
 
 void manual_mode()
