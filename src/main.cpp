@@ -26,7 +26,7 @@ GitHub: https://github.com/spehj/Shroombox
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
 
-#define BLYNK_FIRMWARE_VERSION "0.1.10" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.13" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
@@ -138,12 +138,12 @@ BLYNK_WRITE(AUTO_MAN)
 char growth_phase = 0;
 BLYNK_WRITE(GROWTH_PHASE)
 {
-  if (param.asInt() == 0)
+  if (param.asInt() == 1)
   {
     // Growbox in growth phase 1
     growth_phase = GP1;
   }
-  else if (param.asInt() == 1)
+  else if (param.asInt() == 2)
   {
     // Growbox in growth phase 2
     growth_phase = GP2;
@@ -246,8 +246,8 @@ BLYNK_WRITE(SHROOMBOX_STATUS)
 
 BLYNK_CONNECTED()
 {
-  blynkTimer.setInterval(1011L, mode);
-  blynkTimer.setInterval(1223L, select_setting);
+  //blynkTimer.setInterval(1011L, mode);
+  //blynkTimer.setInterval(1223L, select_setting);
   Blynk.syncAll();
 }
 
@@ -292,7 +292,8 @@ void loop()
     Blynk.virtualWrite(SUBSTRATE_MOIST, substrate_moist);
     Blynk.virtualWrite(WIFI_STRENGTH, wifi_strength);
   }
-  // mode();
+  mode();
+  select_setting();
 
   BlynkEdgent.run();
 }
@@ -614,9 +615,12 @@ void mode()
 
 void auto_mode()
 {
-  //reg_temp(air_temp, /*from blynk*/, hyst_temp);
-  //reg_hum(air_hum, /*from blynk*/, hyst_hum);
-  //reg_co2(co2, /*from blynk*/, hyst_co2);
+  hyst_temp = 4;
+  hyst_hum = 10;
+  hyst_co2 = 400;
+  reg_temp(air_temp, goal_temp, hyst_temp);
+  reg_hum(air_hum, goal_hum, hyst_hum);
+  reg_co2(co2, goal_co2, hyst_co2);
 }
 
 void manual_mode()
@@ -666,7 +670,7 @@ char check_wifi_strength()
 
 void select_setting()
 {
-  if (growth_phase == 0)
+  if (growth_phase == 1)
   {
     // Use settings for GP1
     light_on_t = light_on_t_gp1;
@@ -675,7 +679,7 @@ void select_setting()
     goal_hum = goal_hum_gp1;
     goal_co2 = goal_co2_gp1;
   }
-  else if (growth_phase == 1)
+  else if (growth_phase == 2)
   {
     // Use settings for GP2
     light_on_t = light_on_t_gp2;
