@@ -26,7 +26,7 @@ GitHub: https://github.com/spehj/Shroombox
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
 
-#define BLYNK_FIRMWARE_VERSION "0.1.13" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.14" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
@@ -461,6 +461,7 @@ Return 1 if OK, 0 if ERROR
 */
 char read_sht30(float &temp, float &hum)
 {
+  sht.read();
   temp = sht.getTemperature();
   hum = sht.getHumidity();
   if (isnan(temp) || isnan(hum))
