@@ -26,9 +26,9 @@ GitHub: https://github.com/spehj/Shroombox
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
 
-#define BLYNK_FIRMWARE_VERSION "0.1.9"   // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.9" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
-#define BLYNK_PRINT Serial               //#define BLYNK_DEBUG
+#define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
 #include "BlynkEdgent.h" // Must be below blynk defines!
 
@@ -45,9 +45,9 @@ GitHub: https://github.com/spehj/Shroombox
 #define DISPLAY_H 64  // OLED display height
 #define DISPLAY_ADR 0x3C
 
-#define SHT30_ADDRESS   0x44
-Adafruit_SH1106 display(SDA, SCL); 
-//Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
+#define SHT30_ADDRESS 0x44
+Adafruit_SH1106 display(SDA, SCL);
+// Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
 
 DHT dht(DHT_PIN, DHT22);
 OneWire oneWire1(DS18B20_1_PIN);
@@ -58,9 +58,9 @@ AccelStepper stepper(AccelStepper::FULL4WIRE, STPR_PIN1, STPR_PIN2, STPR_PIN3, S
 
 SCD30 sensorco2;
 
-
 SHT31 sht;
 
+BlynkTimer blynkTimer;
 
 /****************************
 Prototypes of functions */
@@ -83,8 +83,9 @@ void manual_mode();
 void shutdown();
 void mode();
 char check_wifi_strength();
+void select_setting();
 
-//char read_sht30()
+// char read_sht30()
 /****************************/
 void setup()
 {
@@ -149,7 +150,7 @@ BLYNK_WRITE(GROWTH_PHASE)
   }
 }
 
-float pwm_scale_factor = 2.55; 
+float pwm_scale_factor = 2.55;
 unsigned int led_man_pwm = 0; // LED percentage from 0 to 100 times 2.5 to scale from 0 to 255
 BLYNK_WRITE(LED_MAN)
 {
@@ -171,8 +172,90 @@ BLYNK_WRITE(VENTILATOR_MAN)
 unsigned int hum_man = 0;
 BLYNK_WRITE(HUM_MAN)
 {
-  hum_man = (int)round((param.asInt()) * pwm_scale_factor)*100;
+  hum_man = (int)round((param.asInt()) * pwm_scale_factor) * 100;
 }
+
+/* Settings for automatic control for GP1 and GP2*/
+/* GP1 */
+unsigned char light_on_t_gp1 = 0;
+BLYNK_WRITE(BRIGHT_TIME_ON_GP1)
+{
+  light_on_t_gp1 = param.asInt();
+}
+
+unsigned char light_off_t_gp1 = 0;
+BLYNK_WRITE(BRIGHT_TIME_OFF_GP1)
+{
+  light_off_t_gp1 = param.asInt();
+}
+
+float goal_temp_gp1 = 0;
+BLYNK_WRITE(SET_AIR_TEMP_GP1)
+{
+  goal_temp_gp1 = param.asFloat();
+}
+
+unsigned char goal_hum_gp1 = 0;
+BLYNK_WRITE(SET_HUM_GP1)
+{
+  goal_hum_gp1 = param.asInt();
+}
+
+unsigned int goal_co2_gp1 = 0;
+BLYNK_WRITE(SET_CO2_GP1)
+{
+  goal_co2_gp1 = param.asInt();
+}
+
+/* GP2 */
+unsigned char light_on_t_gp2 = 0;
+BLYNK_WRITE(BRIGHT_TIME_ON_GP2)
+{
+  light_on_t_gp2 = param.asInt();
+}
+
+unsigned char light_off_t_gp2 = 0;
+BLYNK_WRITE(BRIGHT_TIME_OFF_GP2)
+{
+  light_off_t_gp2 = param.asInt();
+}
+
+float goal_temp_gp2 = 0;
+BLYNK_WRITE(SET_AIR_TEMP_GP2)
+{
+  goal_temp_gp2 = param.asFloat();
+}
+
+unsigned char goal_hum_gp2 = 0;
+BLYNK_WRITE(SET_HUM_GP2)
+{
+  goal_hum_gp2 = param.asInt();
+}
+
+unsigned int goal_co2_gp2 = 0;
+BLYNK_WRITE(SET_CO2_GP1)
+{
+  goal_co2_gp2 = param.asInt();
+}
+
+String shroombox_status;
+BLYNK_WRITE(SHROOMBOX_STATUS)
+{
+  shroombox_status = param.asString();
+}
+
+BLYNK_CONNECTED()
+{
+  blynkTimer.setInterval(1011L, mode);
+  blynkTimer.setInterval(1223L, select_setting);
+  Blynk.syncAll();
+}
+
+unsigned char light_on_t = 0;
+unsigned char light_off_t = 0;
+float goal_temp = 0;
+unsigned char goal_hum = 0;
+unsigned int goal_co2 = 0;
 
 /*** BLYNK WRITE END***/
 
@@ -208,9 +291,8 @@ void loop()
     Blynk.virtualWrite(CO2, co2);
     Blynk.virtualWrite(SUBSTRATE_MOIST, substrate_moist);
     Blynk.virtualWrite(WIFI_STRENGTH, wifi_strength);
-
   }
-  mode();
+  // mode();
 
   BlynkEdgent.run();
 }
@@ -239,10 +321,10 @@ Return 1 if OK, 0 if ERROR
 void begin_display()
 {
   display.begin(SH1106_SWITCHCAPVCC, DISPLAY_ADR);
-  display.clearDisplay();              // Clear display
-  display.setTextSize(2);              // Normal 1:1 pixel scale
+  display.clearDisplay();      // Clear display
+  display.setTextSize(2);      // Normal 1:1 pixel scale
   display.setTextColor(WHITE); // Draw white text
-  display.setCursor(0, 0);             // Start at top-left corner
+  display.setCursor(0, 0);     // Start at top-left corner
   display.println(F("Shroombox ")), display.println(BLYNK_FIRMWARE_VERSION);
   display.display(); // Show on display
 }
@@ -398,6 +480,7 @@ int read_sen0193()
 {
   /*const int AirValue = 2000;
   const int WaterValue = 1000;
+
   int intervals = (AirValue - WaterValue)/3;
   String txt;*/
   int adc;
@@ -406,11 +489,11 @@ int read_sen0193()
   {
     txt = "Very wet";
   }
-  else if(adc > (WaterValue + intervals) && adc < (AirValue - intervals))
+  else if (adc > (WaterValue + intervals) && adc < (AirValue - intervals))
   {
     txt = "Wet";
   }
-  else if(adc < AirValue && adc > (AirValue - intervals))
+  else if (adc < AirValue && adc > (AirValue - intervals))
   {
     txt = "Dry";
   }
@@ -501,16 +584,30 @@ void mode()
     if (auto_man == 0)
     {
       // auto mode
+      if (shroombox_status != "Automatic Mode")
+      {
+        Blynk.virtualWrite(SHROOMBOX_STATUS, "Automatic Mode");
+      }
+
       auto_mode();
     }
     else if (auto_man == 1)
     {
       // manual mode
+      if (shroombox_status != "Manual Mode")
+      {
+        Blynk.virtualWrite(SHROOMBOX_STATUS, "Manual Mode");
+      }
+
       manual_mode();
     }
   }
   else if (main_switch == 0)
   {
+    if (shroombox_status != "Shroombox OFF")
+    {
+      Blynk.virtualWrite(SHROOMBOX_STATUS, "Shroombox OFF");
+    }
     shutdown();
   }
 }
@@ -546,15 +643,16 @@ char check_wifi_strength()
 Get value of wifi signal strength
 Return wifi signal strength in %
 */
-char check_wifi_strength(){
+char check_wifi_strength()
+{
   int dBm = WiFi.RSSI();
   char quality;
-  if(dBm <= -100) // Lower limit
+  if (dBm <= -100) // Lower limit
   {
     quality = 0;
   }
-  else if(dBm >= -50) // Upper limit
-  {  
+  else if (dBm >= -50) // Upper limit
+  {
     quality = 100;
   }
   else
@@ -562,4 +660,35 @@ char check_wifi_strength(){
     quality = 2 * (dBm + 100);
   }
   return quality;
+}
+
+
+
+void select_setting()
+{
+  if (growth_phase == 0)
+  {
+    // Use settings for GP1
+    light_on_t = light_on_t_gp1;
+    light_off_t = light_off_t_gp1;
+    goal_temp = goal_temp_gp1;
+    goal_hum = goal_hum_gp1;
+    goal_co2 = goal_co2_gp1;
+  }
+  else if (growth_phase == 1)
+  {
+    // Use settings for GP2
+    light_on_t = light_on_t_gp2;
+    light_off_t = light_off_t_gp2;
+    goal_temp = goal_temp_gp2;
+    goal_hum = goal_hum_gp2;
+    goal_co2 = goal_co2_gp2;
+  }
+  else
+  {
+    if (shroombox_status != "Undefined growth phase")
+    {
+      Blynk.virtualWrite(SHROOMBOX_STATUS, "Undefined growth phase");
+    }
+  }
 }
