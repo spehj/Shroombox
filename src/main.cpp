@@ -26,7 +26,7 @@ GitHub: https://github.com/spehj/Shroombox
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
 
-#define BLYNK_FIRMWARE_VERSION "0.1.9" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.10" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
@@ -233,7 +233,7 @@ BLYNK_WRITE(SET_HUM_GP2)
 }
 
 unsigned int goal_co2_gp2 = 0;
-BLYNK_WRITE(SET_CO2_GP1)
+BLYNK_WRITE(SET_CO2_GP2)
 {
   goal_co2_gp2 = param.asInt();
 }
