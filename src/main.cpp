@@ -182,6 +182,7 @@ float room_temp, heater_temp;
 char wifi_strength;
 uint16_t co2;
 int substrate_moist;
+float hyst_temp, hyst_hum, hyst_co2;
 // char growth_phase;
 unsigned char pwm_duty = 0;
 
@@ -399,7 +400,8 @@ int read_sen0193()
   const int WaterValue = 1000;
   int intervals = (AirValue - WaterValue)/3;
   String txt;*/
-  int adc = analogRead(SEN0193_PIN);
+  int adc;
+  adc = analogRead(SEN0193_PIN);
   /*if(adc > WaterValue && adc < (WaterValue + intervals))
   {
     txt = "Very wet";
@@ -520,6 +522,9 @@ void mode()
 
 void auto_mode()
 {
+  //reg_temp(air_temp, /*from blynk*/, hyst_temp)
+  //reg_hum(air_hum, /*from blynk*/, hyst_hum)
+  //reg_co2(co2, /*from blynk*/, hyst_co2)
 }
 
 void manual_mode()
