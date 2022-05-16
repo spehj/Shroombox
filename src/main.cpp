@@ -546,19 +546,19 @@ void display_values()
   display.print("CO2: "), display.print(co2), display.println(" ppm");
   if (wifi_strength < 25)
   {
-    display.drawBitmap(0, 100, signal1_icon16x16, 16, 16, 1);
+    display.drawBitmap(110, 0, signal1_icon16x16, 16, 16, 1);
   }
   else if (wifi_strength >= 25 && wifi_strength < 50 )
   {
-    display.drawBitmap(0, 100, signal2_icon16x16, 16, 16, 1);
+    display.drawBitmap(110, 0, signal2_icon16x16, 16, 16, 1);
   }
   else if (wifi_strength >= 50 && wifi_strength < 75)
   {
-    display.drawBitmap(0, 100, signal3_icon16x16, 16, 16, 1);
+    display.drawBitmap(110, 0, signal3_icon16x16, 16, 16, 1);
   }
   else if (wifi_strength >= 75)
   {
-    display.drawBitmap(0, 100, signal4_icon16x16, 16, 16, 1);
+    display.drawBitmap(110, 0, signal4_icon16x16, 16, 16, 1);
   }
   
   display.display(); // Show on display
