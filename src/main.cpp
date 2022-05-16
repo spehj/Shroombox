@@ -19,6 +19,7 @@ GitHub: https://github.com/spehj/Shroombox
 #include <Adafruit_SH1106.h> //<Adafruit_SSD1306.h>
 #include "IO_Defs.h"
 #include "Blynk_Virtual_Pins.h"
+#include "Icons_16x16.h" // Wifi icons for display
 
 // https://docs.blynk.io/en/getting-started/activating-devices/blynk-edgent-wifi-provisioning
 // https://docs.blynk.io/en/getting-started/updating-devices-firmwares-ota
@@ -543,6 +544,23 @@ void display_values()
   display.print("Temp: "), display.print(air_temp), display.println(" °C");
   display.print("Hum: "), display.print(air_hum), display.println(" %");
   display.print("CO2: "), display.print(co2), display.println(" ppm");
+  if (wifi_strength < 25)
+  {
+    display.drawBitmap(0, 100, signal1_icon16x16, 16, 16, 1);
+  }
+  else if (wifi_strength >= 25 && wifi_strength < 50 )
+  {
+    display.drawBitmap(0, 100, signal2_icon16x16, 16, 16, 1);
+  }
+  else if (wifi_strength >= 50 && wifi_strength < 75)
+  {
+    display.drawBitmap(0, 100, signal3_icon16x16, 16, 16, 1);
+  }
+  else if (wifi_strength >= 75)
+  {
+    display.drawBitmap(0, 100, signal4_icon16x16, 16, 16, 1);
+  }
+  
   display.display(); // Show on display
 }
 
