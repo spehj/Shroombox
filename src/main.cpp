@@ -175,7 +175,7 @@ BLYNK_WRITE(VENTILATOR_MAN)
 unsigned int hum_man = 0;
 BLYNK_WRITE(HUM_MAN)
 {
-  hum_man = (int)round((param.asInt()) * pwm_scale_factor) * 100;
+  hum_man = (int)round((param.asInt()) * pwm_scale_factor);
 }
 
 /* Settings for automatic control for GP1 and GP2*/
@@ -249,7 +249,7 @@ BLYNK_WRITE(SHROOMBOX_STATUS)
 
 BLYNK_CONNECTED()
 {
-  blynkTimer.setInterval(1011L, check_actuators);
+  //blynkTimer.setInterval(1011L, check_actuators);
   //blynkTimer.setInterval(1223L, select_setting);
   Blynk.syncAll();
 }
@@ -571,7 +571,7 @@ void reg_temp()
 Regulate temperature with hysteresis
 */
 
-unsigned int heatpad_auto_pwm = 150;
+unsigned int heatpad_auto_pwm = 0;
 void reg_temp(float measured_temp, float desired_temp, float hyst)
 {
   if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
@@ -594,7 +594,7 @@ void reg_temp(float measured_temp, float desired_temp, float hyst)
 void reg_hum()
 Regulate humidity with hysteresis
 */
-unsigned int hum_auto_pwm = 150;
+unsigned int hum_auto_pwm = 0;
 void reg_hum(float measured_hum, float desired_hum, float hyst)
 {
   if (measured_hum <= (desired_hum - hyst/2.0)) // Lower limit
@@ -780,8 +780,5 @@ void check_actuators(){
      Blynk.virtualWrite(HEATPAD_STATUS, 0);
     
   }
-
-
-
   
 }
