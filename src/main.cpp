@@ -19,6 +19,7 @@ GitHub: https://github.com/spehj/Shroombox
 #include <Adafruit_SH1106.h> //<Adafruit_SSD1306.h>
 #include "IO_Defs.h"
 #include "Blynk_Virtual_Pins.h"
+#include "Icons_16x16.h" // Wifi icons for display
 
 // https://docs.blynk.io/en/getting-started/activating-devices/blynk-edgent-wifi-provisioning
 // https://docs.blynk.io/en/getting-started/updating-devices-firmwares-ota
@@ -75,6 +76,7 @@ char read_sht30(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
 int read_sen0193();
 void begin_display();
+void display_values();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
 void reg_temp(float measured_temp, float desired_temp, float hyst);
@@ -528,6 +530,39 @@ Return value of timer
 unsigned long time_mark()
 {
   return millis();
+}
+
+/*
+void display_values()
+Display values temp, hum, co2, ... on OLED
+*/
+void display_values()
+{
+  display.clearDisplay();      // Clear display
+  display.setTextSize(2);      // Normal 1:1 pixel scale
+  display.setTextColor(WHITE); // Draw white text
+  display.setCursor(0, 0);     // Start at top-left corner
+  display.print("Temp: "), display.print(air_temp), display.println(" °C");
+  display.print("Hum: "), display.print(air_hum), display.println(" %");
+  display.print("CO2: "), display.print(co2), display.println(" ppm");
+  if (wifi_strength < 25)
+  {
+    display.drawBitmap(110, 0, signal1_icon16x16, 16, 16, 1);
+  }
+  else if (wifi_strength >= 25 && wifi_strength < 50 )
+  {
+    display.drawBitmap(110, 0, signal2_icon16x16, 16, 16, 1);
+  }
+  else if (wifi_strength >= 50 && wifi_strength < 75)
+  {
+    display.drawBitmap(110, 0, signal3_icon16x16, 16, 16, 1);
+  }
+  else if (wifi_strength >= 75)
+  {
+    display.drawBitmap(110, 0, signal4_icon16x16, 16, 16, 1);
+  }
+  
+  display.display(); // Show on display
 }
 
 /*
