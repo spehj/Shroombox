@@ -543,7 +543,7 @@ void display_values()
   display.setTextSize(2);      // Normal 1:1 pixel scale
   display.setTextColor(WHITE); // Draw white text
   display.setCursor(0, 0);     // Start at top-left corner
-  display.print("T "), display.print(air_temp), display.println(" °C");
+  display.print("T "), display.print(air_temp), display.println(" C");
   display.print("H "), display.print(air_hum), display.println(" %");
   display.print("C "), display.print(co2), display.println(" ppm");
   if (wifi_strength < 25)
