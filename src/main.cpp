@@ -19,7 +19,6 @@ GitHub: https://github.com/spehj/Shroombox
 #include <Adafruit_SH1106.h> //<Adafruit_SSD1306.h>
 #include "IO_Defs.h"
 #include "Blynk_Virtual_Pins.h"
-#include "Icons_16x16.h" // Wifi icons for display
 
 // https://docs.blynk.io/en/getting-started/activating-devices/blynk-edgent-wifi-provisioning
 // https://docs.blynk.io/en/getting-started/updating-devices-firmwares-ota
@@ -76,7 +75,6 @@ char read_sht30(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
 int read_sen0193();
 void begin_display();
-void display_values();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
 void reg_temp(float measured_temp, float desired_temp, float hyst);
@@ -86,6 +84,7 @@ void shutdown();
 void mode();
 char check_wifi_strength();
 void select_setting();
+void check_actuators();
 
 // char read_sht30()
 /****************************/
@@ -248,7 +247,7 @@ BLYNK_WRITE(SHROOMBOX_STATUS)
 
 BLYNK_CONNECTED()
 {
-  //blynkTimer.setInterval(1011L, mode);
+  blynkTimer.setInterval(1011L, check_actuators);
   //blynkTimer.setInterval(1223L, select_setting);
   Blynk.syncAll();
 }
@@ -332,7 +331,7 @@ void begin_display()
   display.display(); // Show on display
 }
 
-/*
+/*ledcWrite(HUMIDIFIER, 0);
 void begin_stepper();
 Setup stepper motor
 */
@@ -532,86 +531,67 @@ unsigned long time_mark()
 }
 
 /*
-void display_values()
-Display values temp, hum, co2, ... on OLED
-*/
-void display_values()
-{
-  display.clearDisplay();      // Clear display
-  display.setTextSize(2);      // Normal 1:1 pixel scale
-  display.setTextColor(WHITE); // Draw white text
-  display.setCursor(0, 0);     // Start at top-left corner
-  display.print("Temp: "), display.print(air_temp), display.println(" °C");
-  display.print("Hum: "), display.print(air_hum), display.println(" %");
-  display.print("CO2: "), display.print(co2), display.println(" ppm");
-  if (wifi_strength < 25)
-  {
-    display.drawBitmap(110, 0, signal1_icon16x16, 16, 16, 1);
-  }
-  else if (wifi_strength >= 25 && wifi_strength < 50 )
-  {
-    display.drawBitmap(110, 0, signal2_icon16x16, 16, 16, 1);
-  }
-  else if (wifi_strength >= 50 && wifi_strength < 75)
-  {
-    display.drawBitmap(110, 0, signal3_icon16x16, 16, 16, 1);
-  }
-  else if (wifi_strength >= 75)
-  {
-    display.drawBitmap(110, 0, signal4_icon16x16, 16, 16, 1);
-  }
-  
-  display.display(); // Show on display
-}
-
-/*
 void reg_temp()
 Regulate temperature with hysteresis
 */
+
+unsigned int heatpad_auto_pwm = 150;
 void reg_temp(float measured_temp, float desired_temp, float hyst)
 {
   if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
   {
-    ledcWrite(HEATING_PAD1, 150); // 60% duty cycle
-    ledcWrite(HEATING_PAD2, 150); // 60% duty cycle
+    heatpad_auto_pwm = 150;
+    //ledcWrite(HEATING_PAD1, heatpad_auto_pwm); // 60% duty cycle
+    //ledcWrite(HEATING_PAD2, heatpad_auto_pwm); // 60% duty cycle
   }
   else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
   {
-    ledcWrite(HEATING_PAD1, 0); // 0% duty cycle
-    ledcWrite(HEATING_PAD2, 0); // 0% duty cycle
+    heatpad_auto_pwm = 0;
+    //ledcWrite(HEATING_PAD1, 0); // 0% duty cycle
+    //ledcWrite(HEATING_PAD2, 0); // 0% duty cycle
   }
+  ledcWrite(HEATING_PAD1, heatpad_auto_pwm); 
+  ledcWrite(HEATING_PAD2, heatpad_auto_pwm); 
 }
 
 /*
 void reg_hum()
 Regulate humidity with hysteresis
 */
+unsigned int hum_auto_pwm = 150;
 void reg_hum(float measured_hum, float desired_hum, float hyst)
 {
   if (measured_hum <= (desired_hum - hyst/2.0)) // Lower limit
   {
-    ledcWrite(HUMIDIFIER, 150); // 60% duty cycle
+    hum_auto_pwm = 150;
+    //ledcWrite(HUMIDIFIER, hum_auto_pwm); // 60% duty cycle
   }
   else if (measured_hum >= (desired_hum + hyst/2.0)) // Upper limit
   {
-    ledcWrite(HUMIDIFIER, 0); // 0% duty cycle
+    hum_auto_pwm = 0;
+    //ledcWrite(HUMIDIFIER, 0); // 0% duty cycle
   }
+  ledcWrite(HUMIDIFIER, hum_auto_pwm);
 }
 
 /*
 void reg_co2()
 Regulate co2 with hysteresis
 */
+unsigned int fan_auto_pwm = 150;
 void reg_co2(float measured_co2, float desired_co2, float hyst)
 {
   if (measured_co2 <= (desired_co2 - hyst/2.0)) // Lower limit
   {
-    ledcWrite(FAN, 0); // 0% duty cycle
+    fan_auto_pwm = 0;
+    //ledcWrite(FAN, 0); // 0% duty cycle
   }
   else if (measured_co2 >= (desired_co2 + hyst/2.0)) // Upper limit
   {
-    ledcWrite(FAN, 150); // 60% duty cycle
+    fan_auto_pwm = 150;
+    //ledcWrite(FAN, 150); // 60% duty cycle
   }
+  ledcWrite(FAN, fan_auto_pwm); // 60% duty cycle
 }
 
 void mode()
@@ -731,4 +711,41 @@ void select_setting()
       Blynk.virtualWrite(SHROOMBOX_STATUS, "Undefined growth phase");
     }
   }
+}
+
+
+void check_actuators(){
+  if (hum_man > 0  || hum_auto_pwm >0){
+    Blynk.virtualWrite(HUM_STATUS, 1);
+  }else if (hum_man ==0 && hum_auto_pwm ==0)ledcWrite(HUMIDIFIER, 0);
+  { Blynk.virtualWrite(HUM_STATUS, 0);
+    
+  }
+
+  // potrebno dodati se avtomatski cikel
+  if (led_man_pwm > 0){
+ Blynk.virtualWrite(LED_STATUS, 1);
+  }else if (led_man_pwm ==0)
+  {
+     Blynk.virtualWrite(LED_STATUS, 0);
+  }
+
+  if (fan_man_pwm > 0  || fan_auto_pwm >0){
+ Blynk.virtualWrite(FAN_STATUS, 1);
+  }else if (fan_man_pwm ==0 && fan_auto_pwm ==0)
+  {
+     Blynk.virtualWrite(FAN_STATUS, 0);
+  }
+
+  if (heatpad_man_pwm > 0 || heatpad_auto_pwm >0){
+ Blynk.virtualWrite(HEATPAD_STATUS, 1);
+  }else if (heatpad_man_pwm ==0 && heatpad_auto_pwm == 0)
+  {
+     Blynk.virtualWrite(HEATPAD_STATUS, 0);
+    
+  }
+
+
+
+  
 }
