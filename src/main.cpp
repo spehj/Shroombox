@@ -543,9 +543,9 @@ void display_values()
   display.setTextSize(2);      // Normal 1:1 pixel scale
   display.setTextColor(WHITE); // Draw white text
   display.setCursor(0, 0);     // Start at top-left corner
-  display.print("Temp: "), display.print(air_temp), display.println(" °C");
-  display.print("Hum: "), display.print(air_hum), display.println(" %");
-  display.print("CO2: "), display.print(co2), display.println(" ppm");
+  display.print("T "), display.print(air_temp), display.println(" °C");
+  display.print("H "), display.print(air_hum), display.println(" %");
+  display.print("C "), display.print(co2), display.println(" ppm");
   if (wifi_strength < 25)
   {
     display.drawBitmap(110, 0, signal1_icon16x16, 16, 16, 1);
