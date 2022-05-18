@@ -11,7 +11,7 @@
 #define ROOM_TEMP V6
 #define GROWTH_PHASE V7
 #define BRIGHT_TIME_ON_GP1 V8
-#define BRIGHT_TIME_OFF_GP1 V9
+#define BLYNK_TERMINAL V9
 #define SET_HUM_GP1 V10
 #define SET_HUM_GP2 V11
 #define SET_AIR_TEMP_GP1 V12
@@ -35,6 +35,7 @@
 #define LED_STATUS V30
 #define HEATPAD_STATUS V31
 #define HUM_STATUS V32
+
 
 
 #endif

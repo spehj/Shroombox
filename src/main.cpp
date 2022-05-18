@@ -27,7 +27,7 @@ GitHub: https://github.com/spehj/Shroombox
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
 
-#define BLYNK_FIRMWARE_VERSION "0.1.21" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.25" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
@@ -62,6 +62,69 @@ SCD30 sensorco2;
 SHT31 sht;
 
 BlynkTimer blynkTimer;
+WidgetTerminal terminal(BLYNK_TERMINAL);
+
+/****************************
+Variables */
+
+float air_temp, air_hum;
+float room_temp, heater_temp;
+char wifi_strength;
+uint16_t co2;
+String substrate_moist;
+float hyst_temp = 3;
+float hyst_hum = 4;
+float hyst_co2 = 200;
+unsigned char pwm_duty = 0;
+
+unsigned char light_on_t = 0;
+unsigned char light_off_t = 0;
+float goal_temp = 0;
+unsigned char goal_hum = 0;
+unsigned int goal_co2 = 0;
+
+unsigned int heatpad_auto_set_pwm = 100;
+unsigned int heatpad_auto_pwm = 0;
+
+unsigned int hum_auto_set_pwm = 150;
+unsigned int hum_auto_pwm = 0;
+
+unsigned int fan_auto_set_pwm = 180;
+unsigned int fan_auto_pwm = 0;
+
+unsigned int led_auto_set_pwm = 180;
+unsigned int led_auto_pwm = 0;
+
+unsigned int heatpad_man_pwm = 0;
+unsigned int fan_man_pwm = 0;
+unsigned int hum_man = 0;
+unsigned char light_on_t_gp1 = 0;
+float goal_temp_gp1 = 0;
+unsigned char goal_hum_gp1 = 0;
+unsigned int goal_co2_gp1 = 0;
+unsigned char light_on_t_gp2 = 0;
+float goal_temp_gp2 = 0;
+unsigned char goal_hum_gp2 = 0;
+String shroombox_status;
+
+char auto_man = 0; // 0-auto, 1-man
+char growth_phase = 0;
+float pwm_scale_factor = 2.55;
+
+// Status variables for app LEDS
+int hum_status = 0;
+int led_status = 0;
+int fan_status = 0;
+int heat_status = 0;
+
+int last_hum_status = 0;
+int last_led_status = 0;
+int last_fan_status = 0;
+int last_heat_status = 0;
+
+unsigned int goal_co2_gp2 = 0;
+
+char main_switch = 0; // 0-OFF, 1-ON
 
 /****************************
 Prototypes of functions */
@@ -87,6 +150,7 @@ void mode();
 char check_wifi_strength();
 void select_setting();
 void check_actuators();
+int reg_co2(float measured_co2, float desired_co2, float hyst);
 
 // char read_sht30()
 /****************************/
@@ -102,12 +166,18 @@ void setup()
   begin_scd30();
   shutdown();
   delay(100);
+
   BlynkEdgent.begin();
+  // Clear the terminal content
+  terminal.clear();
+
+  terminal.println(F("Blynk v" BLYNK_FIRMWARE_VERSION ": Shroombox started"));
+  terminal.println(F("-------------"));
+  terminal.flush();
 }
 
 /****************************/
 /*** BLYNK WRITE ***/
-char main_switch = 0; // 0-OFF, 1-ON
 
 BLYNK_WRITE(MAIN_ON_OFF) // Executes when the value of virtual pin 0 changes
 {
@@ -124,7 +194,6 @@ BLYNK_WRITE(MAIN_ON_OFF) // Executes when the value of virtual pin 0 changes
   }
 }
 
-char auto_man = 0; // 0-auto, 1-man
 BLYNK_WRITE(AUTO_MAN)
 {
   if (param.asInt() == 0)
@@ -139,7 +208,6 @@ BLYNK_WRITE(AUTO_MAN)
   }
 }
 
-char growth_phase = 0;
 BLYNK_WRITE(GROWTH_PHASE)
 {
   if (param.asInt() == 1)
@@ -154,26 +222,22 @@ BLYNK_WRITE(GROWTH_PHASE)
   }
 }
 
-float pwm_scale_factor = 2.55;
 unsigned int led_man_pwm = 0; // LED percentage from 0 to 100 times 2.5 to scale from 0 to 255
 BLYNK_WRITE(LED_MAN)
 {
   led_man_pwm = (int)round((param.asInt()) * pwm_scale_factor);
 }
 
-unsigned int heatpad_man_pwm = 0;
 BLYNK_WRITE(HEATPAD_MAN)
 {
   heatpad_man_pwm = (int)round((param.asInt()) * pwm_scale_factor);
 }
 
-unsigned int fan_man_pwm = 0;
 BLYNK_WRITE(VENTILATOR_MAN)
 {
   fan_man_pwm = (int)round((param.asInt()) * pwm_scale_factor);
 }
 
-unsigned int hum_man = 0;
 BLYNK_WRITE(HUM_MAN)
 {
   hum_man = (int)round((param.asInt()) * pwm_scale_factor);
@@ -181,71 +245,166 @@ BLYNK_WRITE(HUM_MAN)
 
 /* Settings for automatic control for GP1 and GP2*/
 /* GP1 */
-unsigned char light_on_t_gp1 = 0;
+
 BLYNK_WRITE(BRIGHT_TIME_ON_GP1)
 {
   light_on_t_gp1 = param.asInt();
 }
 
-unsigned char light_off_t_gp1 = 0;
-BLYNK_WRITE(BRIGHT_TIME_OFF_GP1)
-{
-  light_off_t_gp1 = param.asInt();
-}
-
-float goal_temp_gp1 = 0;
 BLYNK_WRITE(SET_AIR_TEMP_GP1)
 {
   goal_temp_gp1 = param.asFloat();
 }
 
-unsigned char goal_hum_gp1 = 0;
 BLYNK_WRITE(SET_HUM_GP1)
 {
   goal_hum_gp1 = param.asInt();
 }
 
-unsigned int goal_co2_gp1 = 0;
 BLYNK_WRITE(SET_CO2_GP1)
 {
   goal_co2_gp1 = param.asInt();
 }
 
 /* GP2 */
-unsigned char light_on_t_gp2 = 0;
+
 BLYNK_WRITE(BRIGHT_TIME_ON_GP2)
 {
   light_on_t_gp2 = param.asInt();
 }
 
-unsigned char light_off_t_gp2 = 0;
-BLYNK_WRITE(BRIGHT_TIME_OFF_GP2)
-{
-  light_off_t_gp2 = param.asInt();
-}
-
-float goal_temp_gp2 = 0;
 BLYNK_WRITE(SET_AIR_TEMP_GP2)
 {
   goal_temp_gp2 = param.asFloat();
 }
 
-unsigned char goal_hum_gp2 = 0;
 BLYNK_WRITE(SET_HUM_GP2)
 {
   goal_hum_gp2 = param.asInt();
 }
 
-unsigned int goal_co2_gp2 = 0;
 BLYNK_WRITE(SET_CO2_GP2)
 {
   goal_co2_gp2 = param.asInt();
 }
 
-String shroombox_status;
 BLYNK_WRITE(SHROOMBOX_STATUS)
 {
   shroombox_status = param.asString();
+}
+
+BLYNK_WRITE(BLYNK_TERMINAL)
+{ // Ukaz oblike: co2_h 2.0
+  int space1, space2, space3, space4;
+  int param1, param2, param3, param4;
+  String buf = param.asStr();
+  space1 = buf.indexOf(' ');
+  space2 = buf.indexOf(' ', space1 + 1);
+  // space3 = buf.indexOf(' ', space2 + 1);
+  // space4 = buf.indexOf(' ', space3 + 1);
+  param1 = buf.substring(space1, space2).toFloat();
+  // param2=buf.substring(space2, space3).toInt();
+  // param3=buf.substring(space3).toInt();
+  // param4=buf.substring(space4).toInt();
+
+  if (buf.startsWith("co2h"))
+  {
+    // Set co2 hysteresis
+    terminal.print("CO2 hysteresis was set to +-");
+    terminal.println(hyst_co2);
+    hyst_co2 = param1;
+    terminal.print("CO2 hysteresis is set to +-");
+    terminal.println(hyst_co2);
+    terminal.flush();
+  }
+
+  if (buf.startsWith("temph"))
+  {
+    // Set temp hysteresis
+    terminal.print("Temperature hysteresis was set to +-");
+    terminal.println(hyst_temp);
+    hyst_temp = param1;
+    terminal.print("Temperature hysteresis is set to +-");
+    terminal.println(hyst_temp);
+    terminal.flush();
+  }
+
+  if (buf.startsWith("humh"))
+  {
+    // Set humidity hysteresis
+    terminal.print("Humidity hysteresis was set to +-");
+    terminal.println(hyst_hum);
+    hyst_hum = param1;
+    terminal.print("Humidity hysteresis is set to +-");
+    terminal.println(hyst_hum);
+    terminal.flush();
+  }
+
+  if (buf.startsWith("hapwm"))
+  {
+    // Set heatpad pwm power from 0 to 255
+    terminal.print("Heatpad pwm was: ");
+    terminal.println(heatpad_auto_set_pwm);
+    heatpad_auto_set_pwm = param1;
+    terminal.print("Heatpad pwm is set to: ");
+    terminal.println(heatpad_auto_set_pwm);
+    terminal.flush();
+  }
+
+  if (buf.startsWith("hupwm"))
+  {
+    // Set humidifier auto pwm from 0 to 255
+    terminal.print("Humidifier pwm was: ");
+    terminal.println(hum_auto_set_pwm);
+    hum_auto_set_pwm = param1;
+    terminal.print("Humidifier pwm is set to: ");
+    terminal.println(hum_auto_set_pwm);
+    terminal.flush();
+  }
+
+  if (buf.startsWith("fapwm"))
+  {
+    // Set fan auto pwm from 0 to 255
+    terminal.print("Fan pwm was: ");
+    terminal.println(fan_auto_set_pwm);
+    fan_auto_set_pwm = param1;
+    terminal.print("Fan pwm is set to: ");
+    terminal.println(fan_auto_set_pwm);
+    terminal.flush();
+  }
+
+  if (buf.startsWith("lpwm"))
+  {
+    // List auto pwm values
+    terminal.print("Heatpad pwm is set to: ");
+    terminal.println(heatpad_auto_set_pwm);
+    terminal.print("Humidifier pwm is set to: ");
+    terminal.println(hum_auto_set_pwm);
+    terminal.print("Fan pwm is set to: ");
+    terminal.println(fan_auto_set_pwm);
+    terminal.print("LED pwm is set to: ");
+    terminal.println(led_auto_set_pwm);
+    terminal.flush();
+  }
+
+  if (buf.startsWith("ls"))
+  {
+    // List statuses
+    terminal.print("Heatpad status: ");
+    terminal.println(heat_status);
+    terminal.print("Humidifier status: ");
+    terminal.println(hum_status);
+    terminal.print("Fan status: ");
+    terminal.println(fan_status);
+    terminal.print("LED status: ");
+    terminal.println(led_status);
+    terminal.flush();
+  }
+
+  if (buf.startsWith("clc"))
+  {
+    terminal.clear();
+  }
 }
 
 BLYNK_CONNECTED()
@@ -255,34 +414,8 @@ BLYNK_CONNECTED()
   Blynk.syncAll();
 }
 
-unsigned char light_on_t = 0;
-unsigned char light_off_t = 0;
-float goal_temp = 0;
-unsigned char goal_hum = 0;
-unsigned int goal_co2 = 0;
-
 /*** BLYNK WRITE END***/
-
 unsigned long time_temp = time_mark();
-float air_temp, air_hum;
-float room_temp, heater_temp;
-char wifi_strength;
-uint16_t co2;
-String substrate_moist;
-float hyst_temp, hyst_hum, hyst_co2;
-// char growth_phase;
-unsigned char pwm_duty = 0;
-
-// Status variables for app LEDS
-int hum_status = 0;
-int led_status = 0;
-int fan_status = 0;
-int heat_status = 0;
-
-int last_hum_status = 0;
-int last_led_status = 0;
-int last_fan_status = 0;
-int last_heat_status = 0;
 
 void loop()
 {
@@ -499,11 +632,11 @@ String read_sen0193()
   const int AirValue = 3000;
   const int WaterValue = 1500;
 
-  int intervals = (AirValue - WaterValue)/3;
+  int intervals = (AirValue - WaterValue) / 3;
   String txt;
   int adc;
   adc = analogRead(SEN0193_PIN);
-  if(adc > WaterValue && adc < (WaterValue + intervals))
+  if ((adc > WaterValue && adc < (WaterValue + intervals)) || (adc < WaterValue))
   {
     txt = "Very wet";
   }
@@ -511,12 +644,16 @@ String read_sen0193()
   {
     txt = "Wet";
   }
-  else if (adc < AirValue && adc > (AirValue - intervals))
+  else if (( adc < AirValue && adc > (AirValue - intervals)) || (adc > AirValue))
   {
     txt = "Dry";
   }
+  else
+  {
+    txt = "Undefined";
+  }
   return txt;
-  //return adc;
+  // return adc;
 }
 
 /*
@@ -583,13 +720,12 @@ void reg_temp()
 Regulate temperature with hysteresis
 */
 
-unsigned int heatpad_auto_pwm = 0;
 void reg_temp(float measured_temp, float desired_temp, float hyst)
 {
 
   if (measured_temp <= (desired_temp - hyst / 2.0)) // Lower limit
   {
-    heatpad_auto_pwm = 100;
+    heatpad_auto_pwm = heatpad_auto_set_pwm;
     heat_status = 1;
     // ledcWrite(HEATING_PAD1, heatpad_auto_pwm); // 60% duty cycle
     // ledcWrite(HEATING_PAD2, heatpad_auto_pwm); // 60% duty cycle
@@ -601,7 +737,7 @@ void reg_temp(float measured_temp, float desired_temp, float hyst)
     // ledcWrite(HEATING_PAD1, 0); // 0% duty cycle
     // ledcWrite(HEATING_PAD2, 0); // 0% duty cycle
   }
-  
+
   ledcWrite(HEATING_PAD1, heatpad_auto_pwm);
   ledcWrite(HEATING_PAD2, heatpad_auto_pwm);
 }
@@ -610,12 +746,12 @@ void reg_temp(float measured_temp, float desired_temp, float hyst)
 void reg_hum()
 Regulate humidity with hysteresis
 */
-unsigned int hum_auto_pwm = 0;
+
 void reg_hum(float measured_hum, float desired_hum, float hyst)
 {
   if (measured_hum <= (desired_hum - hyst / 2.0)) // Lower limit
   {
-    hum_auto_pwm = 150;
+    hum_auto_pwm = hum_auto_set_pwm;
     hum_status = 1;
     // ledcWrite(HUMIDIFIER, hum_auto_pwm); // 60% duty cycle
   }
@@ -632,22 +768,27 @@ void reg_hum(float measured_hum, float desired_hum, float hyst)
 void reg_co2()
 Regulate co2 with hysteresis
 */
-unsigned int fan_auto_pwm = 0;
-void reg_co2(float measured_co2, float desired_co2, float hyst)
+
+int reg_co2(float measured_co2, float desired_co2, float hyst)
 {
+  int flag = 0;
   if (measured_co2 <= (desired_co2 - hyst / 2.0)) // Lower limit
   {
     fan_auto_pwm = 0;
     fan_status = 0;
+    flag = 0;
     // ledcWrite(FAN, 0); // 0% duty cycle
   }
   else if (measured_co2 >= (desired_co2 + hyst / 2.0)) // Upper limit
   {
-    fan_auto_pwm = 150;
+    fan_auto_pwm = fan_auto_set_pwm;
     fan_status = 1;
+    flag = 1;
     // ledcWrite(FAN, 150); // 60% duty cycle
   }
   ledcWrite(FAN, fan_auto_pwm); // 60% duty cycle
+
+  return flag;
 }
 
 void mode()
@@ -693,14 +834,22 @@ void mode()
   check_actuators();
 }
 
+
 void auto_mode()
 {
-  hyst_temp = 3;
-  hyst_hum = 4;
-  hyst_co2 = 200;
+  int flag_co2;
+
+  flag_co2 = reg_co2(co2, goal_co2, hyst_co2);
+  if (flag_co2 == 1)
+  {
+    hum_auto_pwm = 0;
+    ledcWrite(HUMIDIFIER, hum_auto_pwm);
+  }
+  else if (flag_co2 == 0)
+  {
+    reg_hum(air_hum, goal_hum, hyst_hum);
+  }
   reg_temp(air_temp, goal_temp, hyst_temp);
-  reg_hum(air_hum, goal_hum, hyst_hum);
-  reg_co2(co2, goal_co2, hyst_co2);
 }
 
 void manual_mode()
@@ -792,7 +941,6 @@ void select_setting()
   {
     // Use settings for GP1
     light_on_t = light_on_t_gp1;
-    light_off_t = light_off_t_gp1;
     goal_temp = goal_temp_gp1;
     goal_hum = goal_hum_gp1;
     goal_co2 = goal_co2_gp1;
@@ -801,7 +949,6 @@ void select_setting()
   {
     // Use settings for GP2
     light_on_t = light_on_t_gp2;
-    light_off_t = light_off_t_gp2;
     goal_temp = goal_temp_gp2;
     goal_hum = goal_hum_gp2;
     goal_co2 = goal_co2_gp2;
