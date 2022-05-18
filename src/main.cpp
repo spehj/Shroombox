@@ -294,6 +294,7 @@ void loop()
     Blynk.virtualWrite(CO2, co2);
     Blynk.virtualWrite(SUBSTRATE_MOIST, substrate_moist);
     Blynk.virtualWrite(WIFI_STRENGTH, wifi_strength);
+    display_values();
   }
   mode();
   select_setting();
