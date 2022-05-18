@@ -31,6 +31,10 @@
 #define BRIGHT_TIME_OFF_GP2 V26
 #define MAIN_ON_OFF V27
 #define SHROOMBOX_STATUS V28
+#define FAN_STATUS V29
+#define LED_STATUS V30
+#define HEATPAD_STATUS V31
+#define HUM_STATUS V32
 
 
 #endif
