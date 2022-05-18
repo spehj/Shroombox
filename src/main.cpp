@@ -27,7 +27,7 @@ GitHub: https://github.com/spehj/Shroombox
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
 
-#define BLYNK_FIRMWARE_VERSION "0.1.18" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.21" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
@@ -74,7 +74,7 @@ char begin_scd30();
 void begin_pwm();
 char read_sht30(float &temp, float &hum);
 char read_ds18b20(float &temp1, float &temp2);
-int read_sen0193();
+String read_sen0193();
 void begin_display();
 void display_values();
 char time_passed(unsigned long timemark, unsigned long delay);
@@ -100,6 +100,7 @@ void setup()
   begin_pwm();
   begin_display();
   begin_scd30();
+  shutdown();
   delay(100);
   BlynkEdgent.begin();
 }
@@ -249,8 +250,8 @@ BLYNK_WRITE(SHROOMBOX_STATUS)
 
 BLYNK_CONNECTED()
 {
-  //blynkTimer.setInterval(1011L, check_actuators);
-  //blynkTimer.setInterval(1223L, select_setting);
+  // blynkTimer.setInterval(1011L, check_actuators);
+  // blynkTimer.setInterval(1223L, select_setting);
   Blynk.syncAll();
 }
 
@@ -267,10 +268,21 @@ float air_temp, air_hum;
 float room_temp, heater_temp;
 char wifi_strength;
 uint16_t co2;
-int substrate_moist;
+String substrate_moist;
 float hyst_temp, hyst_hum, hyst_co2;
 // char growth_phase;
 unsigned char pwm_duty = 0;
+
+// Status variables for app LEDS
+int hum_status = 0;
+int led_status = 0;
+int fan_status = 0;
+int heat_status = 0;
+
+int last_hum_status = 0;
+int last_led_status = 0;
+int last_fan_status = 0;
+int last_heat_status = 0;
 
 void loop()
 {
@@ -278,7 +290,7 @@ void loop()
   if (time_passed(time_temp, 4000))
   { // Measure every 4s
     read_sht30(air_temp, air_hum);
-    read_ds18b20(heater_temp,room_temp);
+    read_ds18b20(heater_temp, room_temp);
     if (sensorco2.dataAvailable())
     {
       co2 = sensorco2.getCO2();
@@ -363,7 +375,7 @@ char begin_sht30()
   { // If read from sensor fail (sensor not connected, ...)
     Humidity = 0;
     Temperature = 0;
-    //Serial.println(F("Failed to read from DHT sensor!")); 
+    // Serial.println(F("Failed to read from DHT sensor!"));
     return 0; // ERROR
   }
   return 1; // OK
@@ -384,12 +396,12 @@ char begin_ds18b20()
   float temp2 = sensor2.getTempCByIndex(0);
   if (temp1 == DEVICE_DISCONNECTED_C)
   {
-    //Serial.println(F("Failed to read from DS18B20 sensor1!")); 
+    // Serial.println(F("Failed to read from DS18B20 sensor1!"));
     return 0; // ERROR sensor1
   }
   if (temp2 == DEVICE_DISCONNECTED_C)
   {
-    //Serial.println(F("Failed to read from DS18B20 sensor2!")); 
+    // Serial.println(F("Failed to read from DS18B20 sensor2!"));
     return 0; // ERROR sensor2
   }
   return 1; // OK
@@ -405,7 +417,7 @@ char begin_scd30()
   // Wire.begin();
   if (!sensorco2.begin())
   {
-    //Serial.println(F("Failed to read from CO2 sensor!"));
+    // Serial.println(F("Failed to read from CO2 sensor!"));
     return 0; // ERROR
   }
   return 1; // OK
@@ -445,12 +457,12 @@ char read_ds18b20(float &temp1, float &temp2)
   temp2 = sensor2.getTempCByIndex(0);
   if (temp1 == DEVICE_DISCONNECTED_C)
   {
-    //Serial.println(F("Failed to read from DS18B20 sensor1!"));
+    // Serial.println(F("Failed to read from DS18B20 sensor1!"));
     return 0; // ERROR sensor1
   }
   if (temp2 == DEVICE_DISCONNECTED_C)
   {
-    //Serial.println(F("Failed to read from DS18B20 sensor2!"));
+    // Serial.println(F("Failed to read from DS18B20 sensor2!"));
     return 0; // ERROR sensor2
   }
   return 1; // OK
@@ -472,7 +484,7 @@ char read_sht30(float &temp, float &hum)
   { // If read from sensor fail (sensor not connected, ...)
     temp = 0;
     hum = 0;
-    //Serial.println(F("Failed to read from DHT sensor!"));
+    // Serial.println(F("Failed to read from DHT sensor!"));
     return 0; // ERROR
   }
   // Serial.print(F("DHT22: ")), Serial.print(temp), Serial.print(F(" ")), Serial.println(hum);
@@ -482,16 +494,16 @@ char read_sht30(float &temp, float &hum)
 /*
 String read_sen0193()
 */
-int read_sen0193()
+String read_sen0193()
 {
-  /*const int AirValue = 2000;
-  const int WaterValue = 1000;
+  const int AirValue = 3000;
+  const int WaterValue = 1500;
 
   int intervals = (AirValue - WaterValue)/3;
-  String txt;*/
+  String txt;
   int adc;
   adc = analogRead(SEN0193_PIN);
-  /*if(adc > WaterValue && adc < (WaterValue + intervals))
+  if(adc > WaterValue && adc < (WaterValue + intervals))
   {
     txt = "Very wet";
   }
@@ -503,8 +515,8 @@ int read_sen0193()
   {
     txt = "Dry";
   }
-  return txt;*/
-  return adc;
+  return txt;
+  //return adc;
 }
 
 /*
@@ -542,7 +554,7 @@ void display_values()
   display.clearDisplay();      // Clear display
   display.setTextSize(2);      // Normal 1:1 pixel scale
   display.setTextColor(WHITE); // Draw white text
-  display.setCursor(0, 0);     // Start at top-left corner
+  display.setCursor(0, 16);    // Start at top-left corner
   display.print("T "), display.print(air_temp), display.println(" C");
   display.print("H "), display.print(air_hum), display.println(" %");
   display.print("C "), display.print(co2), display.println(" ppm");
@@ -550,7 +562,7 @@ void display_values()
   {
     display.drawBitmap(110, 0, signal1_icon16x16, 16, 16, 1);
   }
-  else if (wifi_strength >= 25 && wifi_strength < 50 )
+  else if (wifi_strength >= 25 && wifi_strength < 50)
   {
     display.drawBitmap(110, 0, signal2_icon16x16, 16, 16, 1);
   }
@@ -562,7 +574,7 @@ void display_values()
   {
     display.drawBitmap(110, 0, signal4_icon16x16, 16, 16, 1);
   }
-  
+
   display.display(); // Show on display
 }
 
@@ -574,20 +586,24 @@ Regulate temperature with hysteresis
 unsigned int heatpad_auto_pwm = 0;
 void reg_temp(float measured_temp, float desired_temp, float hyst)
 {
-  if (measured_temp <= (desired_temp - hyst/2.0)) // Lower limit
+
+  if (measured_temp <= (desired_temp - hyst / 2.0)) // Lower limit
   {
-    heatpad_auto_pwm = 150;
-    //ledcWrite(HEATING_PAD1, heatpad_auto_pwm); // 60% duty cycle
-    //ledcWrite(HEATING_PAD2, heatpad_auto_pwm); // 60% duty cycle
+    heatpad_auto_pwm = 100;
+    heat_status = 1;
+    // ledcWrite(HEATING_PAD1, heatpad_auto_pwm); // 60% duty cycle
+    // ledcWrite(HEATING_PAD2, heatpad_auto_pwm); // 60% duty cycle
   }
-  else if (measured_temp >= (desired_temp + hyst/2.0)) // Upper limit
+  else if (measured_temp >= (desired_temp + hyst / 2.0)) // Upper limit
   {
     heatpad_auto_pwm = 0;
-    //ledcWrite(HEATING_PAD1, 0); // 0% duty cycle
-    //ledcWrite(HEATING_PAD2, 0); // 0% duty cycle
+    heat_status = 0;
+    // ledcWrite(HEATING_PAD1, 0); // 0% duty cycle
+    // ledcWrite(HEATING_PAD2, 0); // 0% duty cycle
   }
-  ledcWrite(HEATING_PAD1, heatpad_auto_pwm); 
-  ledcWrite(HEATING_PAD2, heatpad_auto_pwm); 
+  
+  ledcWrite(HEATING_PAD1, heatpad_auto_pwm);
+  ledcWrite(HEATING_PAD2, heatpad_auto_pwm);
 }
 
 /*
@@ -597,15 +613,17 @@ Regulate humidity with hysteresis
 unsigned int hum_auto_pwm = 0;
 void reg_hum(float measured_hum, float desired_hum, float hyst)
 {
-  if (measured_hum <= (desired_hum - hyst/2.0)) // Lower limit
+  if (measured_hum <= (desired_hum - hyst / 2.0)) // Lower limit
   {
     hum_auto_pwm = 150;
-    //ledcWrite(HUMIDIFIER, hum_auto_pwm); // 60% duty cycle
+    hum_status = 1;
+    // ledcWrite(HUMIDIFIER, hum_auto_pwm); // 60% duty cycle
   }
-  else if (measured_hum >= (desired_hum + hyst/2.0)) // Upper limit
+  else if (measured_hum >= (desired_hum + hyst / 2.0)) // Upper limit
   {
     hum_auto_pwm = 0;
-    //ledcWrite(HUMIDIFIER, 0); // 0% duty cycle
+    hum_status = 0;
+    // ledcWrite(HUMIDIFIER, 0); // 0% duty cycle
   }
   ledcWrite(HUMIDIFIER, hum_auto_pwm);
 }
@@ -614,18 +632,20 @@ void reg_hum(float measured_hum, float desired_hum, float hyst)
 void reg_co2()
 Regulate co2 with hysteresis
 */
-unsigned int fan_auto_pwm = 150;
+unsigned int fan_auto_pwm = 0;
 void reg_co2(float measured_co2, float desired_co2, float hyst)
 {
-  if (measured_co2 <= (desired_co2 - hyst/2.0)) // Lower limit
+  if (measured_co2 <= (desired_co2 - hyst / 2.0)) // Lower limit
   {
     fan_auto_pwm = 0;
-    //ledcWrite(FAN, 0); // 0% duty cycle
+    fan_status = 0;
+    // ledcWrite(FAN, 0); // 0% duty cycle
   }
-  else if (measured_co2 >= (desired_co2 + hyst/2.0)) // Upper limit
+  else if (measured_co2 >= (desired_co2 + hyst / 2.0)) // Upper limit
   {
     fan_auto_pwm = 150;
-    //ledcWrite(FAN, 150); // 60% duty cycle
+    fan_status = 1;
+    // ledcWrite(FAN, 150); // 60% duty cycle
   }
   ledcWrite(FAN, fan_auto_pwm); // 60% duty cycle
 }
@@ -663,13 +683,21 @@ void mode()
     }
     shutdown();
   }
+  else
+  {
+    if (shroombox_status != "Undefined Mode")
+    {
+      Blynk.virtualWrite(SHROOMBOX_STATUS, "Undefined Mode");
+    }
+  }
+  check_actuators();
 }
 
 void auto_mode()
 {
-  hyst_temp = 4;
-  hyst_hum = 10;
-  hyst_co2 = 400;
+  hyst_temp = 3;
+  hyst_hum = 4;
+  hyst_co2 = 200;
   reg_temp(air_temp, goal_temp, hyst_temp);
   reg_hum(air_hum, goal_hum, hyst_hum);
   reg_co2(co2, goal_co2, hyst_co2);
@@ -682,6 +710,42 @@ void manual_mode()
   ledcWrite(FAN, fan_man_pwm);
   ledcWrite(HEATING_PAD1, heatpad_man_pwm);
   ledcWrite(HEATING_PAD2, heatpad_man_pwm);
+
+  if (hum_man > 0)
+  {
+    hum_status = 1;
+  }
+  else if (hum_man <= 0)
+  {
+    hum_status = 0;
+  }
+
+  if (led_man_pwm > 0)
+  {
+    led_status = 1;
+  }
+  else if (led_man_pwm <= 0)
+  {
+    led_status = 0;
+  }
+
+  if (fan_man_pwm > 0)
+  {
+    fan_status = 1;
+  }
+  else if (fan_man_pwm <= 0)
+  {
+    fan_status = 0;
+  }
+
+  if (heatpad_man_pwm > 0)
+  {
+    heat_status = 1;
+  }
+  else if (heatpad_man_pwm <= 0)
+  {
+    heat_status = 0;
+  }
 }
 
 // If main switch is OFF shutdown all actuators
@@ -692,6 +756,10 @@ void shutdown()
   ledcWrite(FAN, 0);
   ledcWrite(HEATING_PAD1, 0);
   ledcWrite(HEATING_PAD2, 0);
+  hum_status = 0;
+  led_status = 0;
+  fan_status = 0;
+  heat_status = 0;
 }
 
 /*
@@ -717,8 +785,6 @@ char check_wifi_strength()
   }
   return quality;
 }
-
-
 
 void select_setting()
 {
@@ -749,36 +815,29 @@ void select_setting()
   }
 }
 
-
-void check_actuators(){
-  if (hum_man > 0  || hum_auto_pwm >0){
-    Blynk.virtualWrite(HUM_STATUS, 1);
-  }else if (hum_man ==0 && hum_auto_pwm ==0)ledcWrite(HUMIDIFIER, 0);
-  { Blynk.virtualWrite(HUM_STATUS, 0);
-    
-  }
-
-  // potrebno dodati se avtomatski cikel
-  if (led_man_pwm > 0){
- Blynk.virtualWrite(LED_STATUS, 1);
-  }else if (led_man_pwm ==0)
+void check_actuators()
+{
+  if (hum_status != last_hum_status)
   {
-     Blynk.virtualWrite(LED_STATUS, 0);
+    Blynk.virtualWrite(HUM_STATUS, hum_status);
+    last_hum_status = hum_status;
   }
 
-  if (fan_man_pwm > 0  || fan_auto_pwm >0){
- Blynk.virtualWrite(FAN_STATUS, 1);
-  }else if (fan_man_pwm ==0 && fan_auto_pwm ==0)
+  if (led_status != last_led_status)
   {
-     Blynk.virtualWrite(FAN_STATUS, 0);
+    Blynk.virtualWrite(LED_STATUS, led_status);
+    last_led_status = led_status;
   }
 
-  if (heatpad_man_pwm > 0 || heatpad_auto_pwm >0){
- Blynk.virtualWrite(HEATPAD_STATUS, 1);
-  }else if (heatpad_man_pwm ==0 && heatpad_auto_pwm == 0)
+  if (fan_status != last_fan_status)
   {
-     Blynk.virtualWrite(HEATPAD_STATUS, 0);
-    
+    Blynk.virtualWrite(FAN_STATUS, fan_status);
+    last_fan_status = fan_status;
   }
-  
+
+  if (heat_status != last_heat_status)
+  {
+    Blynk.virtualWrite(HEATPAD_STATUS, heat_status);
+    last_heat_status = heat_status;
+  }
 }
