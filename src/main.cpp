@@ -881,6 +881,7 @@ void auto_mode()
     reg_hum(air_hum, goal_hum, hyst_hum);
   }
   reg_temp(air_temp, goal_temp, hyst_temp);
+  reg_leds();
 }
 
 void manual_mode()
