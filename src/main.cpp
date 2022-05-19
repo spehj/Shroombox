@@ -559,8 +559,8 @@ char begin_ds18b20()
   sensor1.begin();
   sensor2.begin();
   sensor1.requestTemperatures();
-  sensor2.requestTemperatures();
   float temp1 = sensor1.getTempCByIndex(0);
+  sensor2.requestTemperatures();
   float temp2 = sensor2.getTempCByIndex(0);
   if (temp1 == DEVICE_DISCONNECTED_C)
   {
