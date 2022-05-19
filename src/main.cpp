@@ -307,7 +307,7 @@ BLYNK_WRITE(BLYNK_TERMINAL)
   // param3=buf.substring(space3).toInt();
   // param4=buf.substring(space4).toInt();
 
-  if (buf.startsWith("co2h"))
+  if (buf.startsWith("coh"))
   {
     // Set co2 hysteresis
     terminal.print("CO2 hysteresis was set to +-");
@@ -318,7 +318,7 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.flush();
   }
 
-  if (buf.startsWith("temph"))
+  if (buf.startsWith("teh"))
   {
     // Set temp hysteresis
     terminal.print("Temperature hysteresis was set to +-");
@@ -329,7 +329,7 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.flush();
   }
 
-  if (buf.startsWith("humh"))
+  if (buf.startsWith("huh"))
   {
     // Set humidity hysteresis
     terminal.print("Humidity hysteresis was set to +-");
@@ -340,7 +340,7 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.flush();
   }
 
-  if (buf.startsWith("hapwm"))
+  if (buf.startsWith("hep"))
   {
     // Set heatpad pwm power from 0 to 255
     terminal.print("Heatpad pwm was: ");
@@ -351,7 +351,7 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.flush();
   }
 
-  if (buf.startsWith("hupwm"))
+  if (buf.startsWith("hup"))
   {
     // Set humidifier auto pwm from 0 to 255
     terminal.print("Humidifier pwm was: ");
@@ -362,7 +362,7 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.flush();
   }
 
-  if (buf.startsWith("fapwm"))
+  if (buf.startsWith("fap"))
   {
     // Set fan auto pwm from 0 to 255
     terminal.print("Fan pwm was: ");
@@ -373,7 +373,7 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.flush();
   }
 
-  if (buf.startsWith("lpwm"))
+  if (buf.startsWith("lpw"))
   {
     // List auto pwm values
     terminal.print("Heatpad pwm is set to: ");
@@ -404,6 +404,41 @@ BLYNK_WRITE(BLYNK_TERMINAL)
   if (buf.startsWith("clc"))
   {
     terminal.clear();
+  }
+
+  if(buf.startsWith("lh")){
+    // List hysteresis
+    terminal.print("CO2 hysteresis: ");
+    terminal.println(hyst_co2);
+    terminal.print("Temperature hysteresis: ");
+    terminal.println(hyst_temp);
+    terminal.print("Humidity hysteresis: ");
+    terminal.println(hyst_hum);
+    terminal.flush();
+  }
+
+  if(buf.startsWith("lc")){
+    // List commands
+    terminal.println("Terminal commands:");
+    terminal.println("------------------");
+    terminal.println("Co2 hyst: coh <value>");
+    terminal.println("Temp hyst: teh <value>");
+    terminal.println("Humid hyst: huh <value>");
+    terminal.println("------------------");
+    terminal.println("Heat pwm: hep <value>");
+    terminal.println("Hum pwm: hup <value>");
+    terminal.println("Fan pwm: fap <value>");
+    terminal.println("------------------");
+    terminal.println("List pwm values: lpw");
+    terminal.println("------------------");
+    terminal.println("List statuses: ls");
+    terminal.println("------------------");
+    terminal.println("List commands: lc");
+    terminal.println("------------------");
+    terminal.println("List hysteresis: lh");
+    terminal.println("------------------");
+    terminal.println("Clear terminal: clc");
+    terminal.flush();
   }
 }
 
