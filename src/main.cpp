@@ -78,7 +78,6 @@ float hyst_co2 = 200;
 unsigned char pwm_duty = 0;
 
 unsigned char light_on_t = 0;
-unsigned char light_off_t = 0;
 float goal_temp = 0;
 unsigned char goal_hum = 0;
 unsigned int goal_co2 = 0;
@@ -143,6 +142,7 @@ void display_values();
 char time_passed(unsigned long timemark, unsigned long delay);
 unsigned long time_mark();
 void reg_temp(float measured_temp, float desired_temp, float hyst);
+void reg_leds();
 void auto_mode();
 void manual_mode();
 void shutdown();
@@ -768,7 +768,6 @@ void reg_hum(float measured_hum, float desired_hum, float hyst)
 void reg_co2()
 Regulate co2 with hysteresis
 */
-
 int reg_co2(float measured_co2, float desired_co2, float hyst)
 {
   int flag = 0;
@@ -789,6 +788,34 @@ int reg_co2(float measured_co2, float desired_co2, float hyst)
   ledcWrite(FAN, fan_auto_pwm); // 60% duty cycle
 
   return flag;
+}
+
+/*
+void reg_leds()
+Regulate LEDs with timer
+*/
+void reg_leds()
+{
+  const unsigned long day_sec = 30;//60*60*24; // Cycle time
+  //unsigned char light_on_t = 2; // Unit: seconds
+  unsigned long light_off_t = day_sec - light_on_t; // Unit: seconds
+  static unsigned long timex = time_mark() - day_sec*1000; // *1000 to convert to milliseconds
+  static char led_flag = 0; // First turn LEDs on
+
+  if (time_passed(timex, light_on_t*1000) && (led_flag == 1)) // *1000 to convert to milliseconds
+  {
+    led_auto_pwm = 0;
+    ledcWrite(LEDS,led_auto_pwm);
+    led_flag = 0;
+    timex = time_mark();
+  }
+  else if (time_passed(timex, light_off_t*1000) && (led_flag == 0)) // *1000 to convert to milliseconds
+  {
+    led_auto_pwm = led_auto_set_pwm;
+    ledcWrite(LEDS,led_auto_pwm);
+    led_flag = 1;
+    timex = time_mark();
+  }
 }
 
 void mode()
