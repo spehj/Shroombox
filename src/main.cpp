@@ -7,8 +7,8 @@ GitHub: https://github.com/spehj/Shroombox
 
 #include <Arduino.h>
 #include <AccelStepper.h>
-#include <Adafruit_Sensor.h>
-#include <DHT.h>
+//#include <Adafruit_Sensor.h>
+//#include <DHT.h>
 #include <Wire.h>
 #include <SHT31.h>
 #include <OneWire.h>
@@ -50,7 +50,7 @@ GitHub: https://github.com/spehj/Shroombox
 Adafruit_SH1106 display(SDA, SCL);
 // Adafruit_SSD1306 display(DISPLAY_W, DISPLAY_H, &Wire);
 
-DHT dht(DHT_PIN, DHT22);
+//DHT dht(DHT_PIN, DHT22);
 OneWire oneWire1(DS18B20_1_PIN);
 OneWire oneWire2(DS18B20_2_PIN);
 DallasTemperature sensor1(&oneWire1);
