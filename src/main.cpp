@@ -77,7 +77,7 @@ float hyst_hum = 4;
 float hyst_co2 = 200;
 unsigned char pwm_duty = 0;
 
-unsigned char light_on_t = 0;
+unsigned long light_on_t = 0;
 float goal_temp = 0;
 unsigned char goal_hum = 0;
 unsigned int goal_co2 = 0;
@@ -800,7 +800,7 @@ Regulate LEDs with timer
 */
 void reg_leds()
 {
-  const unsigned long day_sec = 120;//60*60*24; // Cycle time
+  unsigned long day_sec = 120;//60*60*24; // Cycle time
   //unsigned char light_on_t = 2; // Unit: seconds
   unsigned long light_off_t = day_sec - light_on_t; // Unit: seconds
   static unsigned long timex = time_mark() - day_sec*1000; // *1000 to convert to milliseconds
