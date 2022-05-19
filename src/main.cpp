@@ -27,7 +27,7 @@ GitHub: https://github.com/spehj/Shroombox
 #define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
 #define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
 
-#define BLYNK_FIRMWARE_VERSION "0.1.26" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.29" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
@@ -125,6 +125,10 @@ unsigned int goal_co2_gp2 = 0;
 
 char main_switch = 0; // 0-OFF, 1-ON
 
+float temp_s1;
+float temp_s2;
+
+
 /****************************
 Prototypes of functions */
 
@@ -151,6 +155,9 @@ char check_wifi_strength();
 void select_setting();
 void check_actuators();
 int reg_co2(float measured_co2, float desired_co2, float hyst);
+void read_global_ds18b20();
+void read_heater_ds18b20();
+void read_room_ds18b20();
 
 // char read_sht30()
 /****************************/
@@ -170,10 +177,6 @@ void setup()
   BlynkEdgent.begin();
   // Clear the terminal content
   terminal.clear();
-
-  terminal.println(F("Blynk v" BLYNK_FIRMWARE_VERSION ": Shroombox started"));
-  terminal.println(F("-------------"));
-  terminal.flush();
 }
 
 /****************************/
@@ -296,7 +299,8 @@ BLYNK_WRITE(SHROOMBOX_STATUS)
 BLYNK_WRITE(BLYNK_TERMINAL)
 { // Ukaz oblike: co2_h 2.0
   int space1, space2, space3, space4;
-  int param1, param2, param3, param4;
+  float param1, param2, param3, param4;
+  int sid;
   String buf = param.asStr();
   space1 = buf.indexOf(' ');
   space2 = buf.indexOf(' ', space1 + 1);
@@ -373,6 +377,16 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.flush();
   }
 
+  if(buf.startsWith("lep")){
+    // Set led auto pwm from 0 to 255
+    terminal.print("LED pwm was: ");
+    terminal.println(led_auto_set_pwm);
+    led_auto_set_pwm = param1;
+    terminal.print("LED pwm is set to: ");
+    terminal.println(led_auto_set_pwm);
+    terminal.flush();
+  }
+
   if (buf.startsWith("lpw"))
   {
     // List auto pwm values
@@ -428,6 +442,7 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.println("Heat pwm: hep <value>");
     terminal.println("Hum pwm: hup <value>");
     terminal.println("Fan pwm: fap <value>");
+    terminal.println("LED pwm: lep <value>");
     terminal.println("------------------");
     terminal.println("List pwm values: lpw");
     terminal.println("------------------");
@@ -439,6 +454,27 @@ BLYNK_WRITE(BLYNK_TERMINAL)
     terminal.println("------------------");
     terminal.println("Clear terminal: clc");
     terminal.flush();
+  }
+
+  if(buf.startsWith("tse")){
+    int sensor_id = param1;
+    if (sensor_id == 1.0){
+      sensor1.requestTemperatures();
+      temp_s1 = sensor1.getTempCByIndex(0);
+      terminal.print("Sensor 1 value:");
+      terminal.println(temp_s1);
+      terminal.flush();
+      }else if (sensor_id == 2.0)
+      {
+        sensor2.requestTemperatures();
+      temp_s2 = sensor2.getTempCByIndex(0);
+      terminal.print("Sensor 2 value:");
+      terminal.println(temp_s2);
+      terminal.flush();
+      }
+      
+
+    
   }
 }
 
@@ -458,7 +494,9 @@ void loop()
   if (time_passed(time_temp, 4000))
   { // Measure every 4s
     read_sht30(air_temp, air_hum);
-    read_ds18b20(heater_temp, room_temp);
+    //read_ds18b20(heater_temp, room_temp);
+    read_room_ds18b20();
+    read_heater_ds18b20();
     if (sensorco2.dataAvailable())
     {
       co2 = sensorco2.getCO2();
@@ -634,6 +672,17 @@ char read_ds18b20(float &temp1, float &temp2)
     return 0; // ERROR sensor2
   }
   return 1; // OK
+}
+
+void read_heater_ds18b20(){
+  sensor1.requestTemperatures();
+  heater_temp = sensor1.getTempCByIndex(0);
+
+}
+
+void read_room_ds18b20(){
+  sensor2.requestTemperatures();
+  room_temp = sensor2.getTempCByIndex(0);
 }
 
 /*
