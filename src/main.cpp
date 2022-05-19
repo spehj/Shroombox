@@ -800,10 +800,10 @@ Regulate LEDs with timer
 */
 void reg_leds()
 {
-  unsigned long day_sec = 120;//60*60*24; // Cycle time
+  unsigned long cycle_t = 120;//60*60*24; // Cycle time
   //unsigned char light_on_t = 2; // Unit: seconds
-  unsigned long light_off_t = day_sec - light_on_t; // Unit: seconds
-  static unsigned long timex = time_mark() - day_sec*1000; // *1000 to convert to milliseconds
+  unsigned long light_off_t = cycle_t - light_on_t; // Unit: seconds
+  static unsigned long timex = time_mark() - cycle_t*1000; // *1000 to convert to milliseconds
   static char led_flag = 0; // First turn LEDs on
 
   if (time_passed(timex, light_on_t*1000) && (led_flag == 1)) // *1000 to convert to milliseconds
