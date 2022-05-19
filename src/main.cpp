@@ -620,8 +620,8 @@ Return 1 if OK, 0 if ERROR
 char read_ds18b20(float &temp1, float &temp2)
 {
   sensor1.requestTemperatures();
-  sensor2.requestTemperatures();
   temp1 = sensor1.getTempCByIndex(0);
+  sensor2.requestTemperatures();
   temp2 = sensor2.getTempCByIndex(0);
   if (temp1 == DEVICE_DISCONNECTED_C)
   {
