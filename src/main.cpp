@@ -785,6 +785,10 @@ int reg_co2(float measured_co2, float desired_co2, float hyst)
     flag = 1;
     // ledcWrite(FAN, 150); // 60% duty cycle
   }
+  else
+  {
+    flag = 1; // When inside hysteresis, set flag to 1 so humidifier doesn't turn on when fan is on
+  }
   ledcWrite(FAN, fan_auto_pwm); // 60% duty cycle
 
   return flag;
