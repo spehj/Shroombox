@@ -19,13 +19,11 @@ GitHub: https://github.com/spehj/Shroombox
 #include <Adafruit_SH1106.h> //<Adafruit_SSD1306.h>
 #include "IO_Defs.h"
 #include "Blynk_Virtual_Pins.h"
+#include "Blynk_Secrets.h"
 #include "Icons_16x16.h" // Wifi icons for display
 
 // https://docs.blynk.io/en/getting-started/activating-devices/blynk-edgent-wifi-provisioning
 // https://docs.blynk.io/en/getting-started/updating-devices-firmwares-ota
-
-#define BLYNK_TEMPLATE_ID "TMPLWxVCUiA-" // Copy from Blynk template
-#define BLYNK_DEVICE_NAME "Shroombox V1" // Copy from Blynk template
 
 #define BLYNK_FIRMWARE_VERSION "0.1.29" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
