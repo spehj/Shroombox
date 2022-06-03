@@ -25,7 +25,7 @@ GitHub: https://github.com/spehj/Shroombox
 // https://docs.blynk.io/en/getting-started/activating-devices/blynk-edgent-wifi-provisioning
 // https://docs.blynk.io/en/getting-started/updating-devices-firmwares-ota
 
-#define BLYNK_FIRMWARE_VERSION "0.1.29" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.30" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
@@ -83,10 +83,10 @@ unsigned int goal_co2 = 0;
 unsigned int heatpad_auto_set_pwm = 100;
 unsigned int heatpad_auto_pwm = 0;
 
-unsigned int hum_auto_set_pwm = 150;
+unsigned int hum_auto_set_pwm = 250;
 unsigned int hum_auto_pwm = 0;
 
-unsigned int fan_auto_set_pwm = 180;
+unsigned int fan_auto_set_pwm = 220;
 unsigned int fan_auto_pwm = 0;
 
 unsigned int led_auto_set_pwm = 180;
@@ -891,6 +891,7 @@ void reg_leds()
   if (time_passed(timex, light_on_t*1000) && (led_flag == 1)) // *1000 to convert to milliseconds
   {
     led_auto_pwm = 0;
+    led_status = 0;
     ledcWrite(LEDS,led_auto_pwm);
     led_flag = 0;
     timex = time_mark();
@@ -898,6 +899,7 @@ void reg_leds()
   else if (time_passed(timex, light_off_t*1000) && (led_flag == 0)) // *1000 to convert to milliseconds
   {
     led_auto_pwm = led_auto_set_pwm;
+    led_status = 1;
     ledcWrite(LEDS,led_auto_pwm);
     led_flag = 1;
     timex = time_mark();
