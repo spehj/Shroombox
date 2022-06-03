@@ -27,6 +27,7 @@ GitHub: https://github.com/spehj/Shroombox
 
 #define BLYNK_FIRMWARE_VERSION "0.1.31" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
+
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
 #define APP_DEBUG
 #include "BlynkEdgent.h" // Must be below blynk defines!
