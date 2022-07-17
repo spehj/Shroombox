@@ -25,7 +25,7 @@ GitHub: https://github.com/spehj/Shroombox
 // https://docs.blynk.io/en/getting-started/activating-devices/blynk-edgent-wifi-provisioning
 // https://docs.blynk.io/en/getting-started/updating-devices-firmwares-ota
 
-#define BLYNK_FIRMWARE_VERSION "0.1.31" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.33" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
