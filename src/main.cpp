@@ -25,7 +25,7 @@ GitHub: https://github.com/spehj/Shroombox
 // https://docs.blynk.io/en/getting-started/activating-devices/blynk-edgent-wifi-provisioning
 // https://docs.blynk.io/en/getting-started/updating-devices-firmwares-ota
 
-#define BLYNK_FIRMWARE_VERSION "0.1.31" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
+#define BLYNK_FIRMWARE_VERSION "0.1.33" // Change the Firmware version every time, otherwise device will ignore it and won't update OTA!
 
 
 #define BLYNK_PRINT Serial //#define BLYNK_DEBUG
@@ -96,11 +96,11 @@ unsigned int led_auto_pwm = 0;
 unsigned int heatpad_man_pwm = 0;
 unsigned int fan_man_pwm = 0;
 unsigned int hum_man = 0;
-unsigned char light_on_t_gp1 = 0;
+unsigned long light_on_t_gp1 = 0;
 float goal_temp_gp1 = 0;
 unsigned char goal_hum_gp1 = 0;
 unsigned int goal_co2_gp1 = 0;
-unsigned char light_on_t_gp2 = 0;
+unsigned long light_on_t_gp2 = 0;
 float goal_temp_gp2 = 0;
 unsigned char goal_hum_gp2 = 0;
 String shroombox_status;
@@ -250,7 +250,7 @@ BLYNK_WRITE(HUM_MAN)
 
 BLYNK_WRITE(BRIGHT_TIME_ON_GP1)
 {
-  light_on_t_gp1 = param.asInt();
+  light_on_t_gp1 = 60*60*(param.asInt());
 }
 
 BLYNK_WRITE(SET_AIR_TEMP_GP1)
@@ -272,7 +272,7 @@ BLYNK_WRITE(SET_CO2_GP1)
 
 BLYNK_WRITE(BRIGHT_TIME_ON_GP2)
 {
-  light_on_t_gp2 = param.asInt();
+  light_on_t_gp2 = 60*60*(param.asInt());
 }
 
 BLYNK_WRITE(SET_AIR_TEMP_GP2)
@@ -883,7 +883,7 @@ Regulate LEDs with timer
 */
 void reg_leds()
 {
-  unsigned long cycle_t = 120;//60*60*24; // Cycle time unit: seconds
+  unsigned long cycle_t = 60*60*24;//60*60*24; // Cycle time unit: seconds
   //unsigned char light_on_t = 2; // Unit: seconds
   unsigned long light_off_t = cycle_t - light_on_t; // Unit: seconds
   static unsigned long timex = time_mark() - cycle_t*1000; // *1000 to convert to milliseconds
