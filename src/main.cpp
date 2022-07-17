@@ -250,7 +250,7 @@ BLYNK_WRITE(HUM_MAN)
 
 BLYNK_WRITE(BRIGHT_TIME_ON_GP1)
 {
-  light_on_t_gp1 = param.asInt();
+  light_on_t_gp1 = 60*60*(param.asInt());
 }
 
 BLYNK_WRITE(SET_AIR_TEMP_GP1)
@@ -272,7 +272,7 @@ BLYNK_WRITE(SET_CO2_GP1)
 
 BLYNK_WRITE(BRIGHT_TIME_ON_GP2)
 {
-  light_on_t_gp2 = param.asInt();
+  light_on_t_gp2 = 60*60*(param.asInt());
 }
 
 BLYNK_WRITE(SET_AIR_TEMP_GP2)
@@ -883,7 +883,7 @@ Regulate LEDs with timer
 */
 void reg_leds()
 {
-  unsigned long cycle_t = 120;//60*60*24; // Cycle time unit: seconds
+  unsigned long cycle_t = 60*60*24;//60*60*24; // Cycle time unit: seconds
   //unsigned char light_on_t = 2; // Unit: seconds
   unsigned long light_off_t = cycle_t - light_on_t; // Unit: seconds
   static unsigned long timex = time_mark() - cycle_t*1000; // *1000 to convert to milliseconds
